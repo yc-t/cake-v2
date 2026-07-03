@@ -72,7 +72,7 @@ export const initialState: AppState = {
   draggingId: null,
   selectedId: null,
   typeColorMap: { rose: null, hydrangea: null, peony: null, fivepetal: null },
-  currentScreen: 'screen2',
+  currentScreen: 'screen1',
 }
 
 // Tray geometry: x 6.5–15.5, z -4.5–10.0

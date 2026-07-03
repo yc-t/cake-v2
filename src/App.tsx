@@ -3,9 +3,11 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { initialState } from './data/initialState'
-import type { AppState } from './types'
+import { computeGradient } from './data/gradient'
+import type { AppState, FlowerType } from './types'
 import { FlowerTray } from './components/FlowerTray'
 import { DragManager } from './components/DragManager'
+import { Screen1 } from './components/Screen1'
 import type { DragInfo } from './components/DragManager'
 
 const DEG = Math.PI / 180
@@ -75,11 +77,34 @@ function SceneCapture({
 export default function App() {
   const [state, setState] = useState<AppState>(initialState)
 
+  // All refs must be declared unconditionally (React rules of hooks)
   const cakeMeshRef = useRef<THREE.Mesh>(null)
   const orbitRef = useRef<{ enabled: boolean }>(null)
   const dragRef = useRef<DragInfo | null>(null)
   const glRef = useRef<THREE.WebGLRenderer>(null)
   const cameraRef = useRef<THREE.Camera>(null)
+
+  // Screen 1: assign a palette color to all tray flowers of one type, with gradient
+  function handleColorAssign(type: FlowerType, hex: string) {
+    setState(s => {
+      const trayCount = s.flowers.filter(f => f.type === type && !f.onCake).length
+      const gradient = computeGradient(hex, trayCount)
+      let gi = 0
+      return {
+        ...s,
+        typeColorMap: { ...s.typeColorMap, [type]: hex },
+        flowers: s.flowers.map(f => {
+          if (f.type !== type || f.onCake) return f
+          return { ...f, baseColor: hex, color: gradient[gi++] }
+        }),
+      }
+    })
+  }
+
+  // Screen 1 → Screen 2 transition
+  function handleStart() {
+    setState(s => ({ ...s, currentScreen: 'screen2' }))
+  }
 
   function onFlowerPointerDown(flowerId: string, e: PointerEvent) {
     dragRef.current = { flowerId, startX: e.clientX, startY: e.clientY, didDrag: false }
@@ -111,6 +136,18 @@ export default function App() {
     }, 'image/png')
   }
 
+  // Screen 1
+  if (state.currentScreen === 'screen1') {
+    return (
+      <Screen1
+        flowers={state.flowers}
+        onColorAssign={handleColorAssign}
+        onStart={handleStart}
+      />
+    )
+  }
+
+  // Screen 2 — arrangement view
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <Canvas
