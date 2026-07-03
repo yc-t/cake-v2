@@ -1,0 +1,193 @@
+import React, { useRef, useState, useCallback, Suspense } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { OrbitControls } from '@react-three/drei'
+import * as THREE from 'three'
+import { initialState } from './data/initialState'
+import type { AppState } from './types'
+import { FlowerTray } from './components/FlowerTray'
+import { DragManager } from './components/DragManager'
+import type { DragInfo } from './components/DragManager'
+
+const DEG = Math.PI / 180
+
+const btnStyle: React.CSSProperties = {
+  background: 'rgba(0,0,0,0.06)',
+  border: '1.5px solid rgba(0,0,0,0.08)',
+  borderRadius: '50%',
+  width: 44,
+  height: 44,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+  padding: 0,
+}
+
+function rgb(color: [number, number, number]): THREE.Color {
+  return new THREE.Color(color[0], color[1], color[2])
+}
+
+function CameraLight() {
+  const ref = useRef<THREE.DirectionalLight>(null)
+  const { camera } = useThree()
+  useFrame(() => { ref.current?.position.copy(camera.position) })
+  return <directionalLight ref={ref} intensity={0.5} />
+}
+
+function CakeScene({
+  state,
+  cakeMeshRef,
+}: {
+  state: AppState
+  cakeMeshRef: React.RefObject<THREE.Mesh | null>
+}) {
+  const cake = state.cake.layers[0]
+  const board = state.board
+  const boardY = -cake.height / 2 - board.height / 2
+  return (
+    <>
+      <mesh ref={cakeMeshRef}>
+        <cylinderGeometry args={[cake.radius, cake.radius, cake.height, 64]} />
+        <meshStandardMaterial color={rgb(cake.color)} />
+      </mesh>
+      <mesh position={[0, boardY, 0]}>
+        <cylinderGeometry args={[board.radius, board.radius, board.height, 64]} />
+        <meshStandardMaterial color="#ffffff" />
+      </mesh>
+    </>
+  )
+}
+
+function SceneCapture({
+  glRef,
+  cameraRef,
+}: {
+  glRef: React.RefObject<THREE.WebGLRenderer | null>
+  cameraRef: React.RefObject<THREE.Camera | null>
+}) {
+  const { gl, camera } = useThree()
+  glRef.current = gl
+  cameraRef.current = camera
+  return null
+}
+
+export default function App() {
+  const [state, setState] = useState<AppState>(initialState)
+
+  const cakeMeshRef = useRef<THREE.Mesh>(null)
+  const orbitRef = useRef<{ enabled: boolean }>(null)
+  const dragRef = useRef<DragInfo | null>(null)
+  const glRef = useRef<THREE.WebGLRenderer>(null)
+  const cameraRef = useRef<THREE.Camera>(null)
+
+  function onFlowerPointerDown(flowerId: string, e: PointerEvent) {
+    dragRef.current = { flowerId, startX: e.clientX, startY: e.clientY, didDrag: false }
+  }
+
+  const onCakeClick = useCallback(() => {
+    setState(s => ({ ...s, selectedId: null }))
+  }, [])
+
+  function handleReset() {
+    setState({ ...initialState })
+    const camera = cameraRef.current as THREE.PerspectiveCamera | null
+    if (camera) camera.position.set(2, 18, 28)
+    const controls = orbitRef.current as any
+    if (controls) { controls.target.set(5, 0, 0); controls.update() }
+  }
+
+  function handleScreenshot() {
+    const gl = glRef.current
+    if (!gl) return
+    gl.domElement.toBlob(blob => {
+      if (!blob) return
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'cake.png'
+      a.click()
+      URL.revokeObjectURL(url)
+    }, 'image/png')
+  }
+
+  return (
+    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+      <Canvas
+        camera={{ position: [2, 18, 28], fov: 50 }}
+        gl={{ toneMapping: THREE.NoToneMapping, preserveDrawingBuffer: true }}
+      >
+        <color attach="background" args={['#f5f2ed']} />
+        <ambientLight intensity={1.5} />
+        <hemisphereLight args={['#ffffff', '#f5f2ed', 1.0]} />
+        <CameraLight />
+        <SceneCapture glRef={glRef} cameraRef={cameraRef} />
+
+        <CakeScene state={state} cakeMeshRef={cakeMeshRef} />
+
+        <Suspense fallback={null}>
+          <FlowerTray
+            flowers={state.flowers}
+            draggingId={state.draggingId}
+            selectedId={state.selectedId}
+            onFlowerPointerDown={onFlowerPointerDown}
+          />
+          <DragManager
+            state={state}
+            setState={setState}
+            cakeMeshRef={cakeMeshRef}
+            orbitRef={orbitRef}
+            dragRef={dragRef}
+            onCakeClick={onCakeClick}
+          />
+        </Suspense>
+
+        <OrbitControls
+          ref={orbitRef as any}
+          target={[5, 0, 0]}
+          minPolarAngle={0}
+          maxPolarAngle={85 * DEG}
+          minDistance={15}
+          maxDistance={35}
+          enablePan={true}
+          mouseButtons={{
+            LEFT: THREE.MOUSE.ROTATE,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.PAN,
+          }}
+          touches={{
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN,
+          }}
+        />
+      </Canvas>
+
+      <div style={{ position: 'fixed', bottom: 28, right: 28, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button
+          onClick={handleScreenshot}
+          title="儲存截圖"
+          style={btnStyle}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.12)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.06)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 3V12M9 12L5.5 8.5M9 12L12.5 8.5" stroke="#555" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="3" y1="15.5" x2="15" y2="15.5" stroke="#555" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
+        <button
+          onClick={handleReset}
+          title="重置"
+          style={btnStyle}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.12)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.06)' }}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3.5 9A5.5 5.5 0 1 0 5.2 5.2" stroke="#555" strokeWidth="1.5" strokeLinecap="round"/>
+            <polyline points="2,3 2,6.5 5.5,6.5" stroke="#555" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  )
+}
