@@ -37,12 +37,22 @@ function hexToHsl(hex: string): [number, number, number] {
   return [h * 360, s * 100, l * 100]
 }
 
-// Returns `count` RGB colors from darkest to lightest.
-// Fixes H and S from baseHex; distributes L starting at baseL, +5% per step.
+// Default: fixes H and S, distributes L from baseL +4% per step.
 export function computeGradient(baseHex: string, count: number): [number, number, number][] {
   const [h, s, baseL] = hexToHsl(baseHex)
   return Array.from({ length: count }, (_, i) => {
-    const l = Math.min(95, baseL + i * 5)
+    const l = Math.min(95, baseL + i * 4)
+    return hslToRgb(h, s, l)
+  })
+}
+
+// Peony: darkest at baseL-10%, lightest at baseL, evenly spaced. S never drops.
+// 10% L span across the group makes depth visible without washing out.
+export function computePeonyGradient(baseHex: string, count: number): [number, number, number][] {
+  const [h, s, baseL] = hexToHsl(baseHex)
+  return Array.from({ length: count }, (_, i) => {
+    const t = count === 1 ? 1 : i / (count - 1)   // 0 = darkest, 1 = lightest
+    const l = Math.max(5, baseL - 10 + t * 10)
     return hslToRgb(h, s, l)
   })
 }

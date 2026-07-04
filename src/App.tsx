@@ -3,11 +3,12 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { initialState } from './data/initialState'
-import { computeGradient } from './data/gradient'
+import { computeGradient, computePeonyGradient } from './data/gradient'
 import type { AppState, FlowerType } from './types'
 import { FlowerTray } from './components/FlowerTray'
 import { DragManager } from './components/DragManager'
 import { Screen1 } from './components/Screen1'
+import { FlowerColorPicker } from './components/FlowerColorPicker'
 import type { DragInfo } from './components/DragManager'
 
 const DEG = Math.PI / 180
@@ -84,11 +85,40 @@ export default function App() {
   const glRef = useRef<THREE.WebGLRenderer>(null)
   const cameraRef = useRef<THREE.Camera>(null)
 
+  // Screen 2: change shade only — keeps baseColor, changes color
+  function handleFlowerShadeChange(color: [number, number, number]) {
+    setState(s => ({
+      ...s,
+      flowers: s.flowers.map(f =>
+        f.id === s.selectedId ? { ...f, color } : f
+      ),
+    }))
+  }
+
+  // Screen 2: change family — sets new baseColor, applies middle shade (index 2 of 5)
+  function handleFlowerFamilyChange(baseHex: string) {
+    setState(s => {
+      const flower = s.flowers.find(f => f.id === s.selectedId)
+      if (!flower) return s
+      const gradient = flower.type === 'peony'
+        ? computePeonyGradient(baseHex, 5)
+        : computeGradient(baseHex, 5)
+      return {
+        ...s,
+        flowers: s.flowers.map(f =>
+          f.id === s.selectedId ? { ...f, baseColor: baseHex, color: gradient[2] } : f
+        ),
+      }
+    })
+  }
+
   // Screen 1: assign a palette color to all tray flowers of one type, with gradient
   function handleColorAssign(type: FlowerType, hex: string) {
     setState(s => {
       const trayCount = s.flowers.filter(f => f.type === type && !f.onCake).length
-      const gradient = computeGradient(hex, trayCount)
+      const gradient = type === 'peony'
+        ? computePeonyGradient(hex, trayCount)
+        : computeGradient(hex, trayCount)
       let gi = 0
       return {
         ...s,
@@ -148,6 +178,10 @@ export default function App() {
   }
 
   // Screen 2 — arrangement view
+  const selectedFlower = state.selectedId
+    ? (state.flowers.find(f => f.id === state.selectedId) ?? null)
+    : null
+
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <Canvas
@@ -198,6 +232,14 @@ export default function App() {
           }}
         />
       </Canvas>
+
+      {selectedFlower && (
+        <FlowerColorPicker
+          flower={selectedFlower}
+          onShadeChange={handleFlowerShadeChange}
+          onFamilyChange={handleFlowerFamilyChange}
+        />
+      )}
 
       <div style={{ position: 'fixed', bottom: 28, right: 28, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <button

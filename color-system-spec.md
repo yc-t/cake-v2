@@ -28,7 +28,7 @@ This document is the **implementation brief for this round only**. It defines ex
 
 ### In scope:
 - Remove the entire old color system (primary/secondary family picker, related state, related logic)
-- Build Screen 1: color assignment page displaying flowers with the same 3D models as Screen 2, grouped by type, fixed camera angle, no rotation or drag-to-cake interaction
+- Build Screen 1: color assignment page with flower type cards (static thumbnail images of each flower type, pre-rendered from 3D models), grouped by type, with draggable color swatches
 - Modify Screen 2: flowers enter with colors assigned in Screen 1
 - Rewrite single-flower color picker to two-row layout
 - Unify all color swatches to one shared 7-color palette
@@ -92,12 +92,15 @@ After producing Lists A, B, C: stop and wait for user confirmation before procee
 
 - This is the first screen the user sees when opening the tool.
 - Display all flowers grouped by type: rose group (6), hydrangea group (8), peony group (4), fivepetal group (4). Each group is visually distinct and labeled.
-- **Flowers must be rendered using the same 3D models as Screen 2** (GLB models for rose/hydrangea/peony, procedural geometry for fivepetal). They should look identical to how they appear in the flower tray on Screen 2. Do NOT replace flowers with abstract circles, color blocks, icons, or any other placeholder. The camera angle is fixed (no user rotation, no pan, no zoom). The only difference from Screen 2 is the interaction model: users cannot drag flowers onto a cake; they can only drag colors onto flower groups.
-- Display the 7-color palette as draggable color swatches (see Section 9 for exact colors).
-- User drags a color onto a flower type group → all flowers in that group automatically receive that color family with an HSL lightness gradient applied:
-  - Fix H (hue) and S (saturation) from the base color.
-  - Distribute L (lightness) evenly across flowers in the group, from darker to lighter.
-  - Example: 4 flowers → L offsets of baseL, baseL+5%, baseL+10%, baseL+15%. Exact values can be hardcoded initially and adjusted later.
+- Each flower type group is displayed in a rectangular card. Inside each card:
+  - One thumbnail image of that flower type (pre-rendered from the 3D model at a fixed top-down angle). Before color assignment, thumbnail displays in default white/gray. After a color is assigned, thumbnail tints to the deepest shade of the assigned gradient (so users see "this flower in this color").
+  - The flower type name and count (e.g. "玫瑰 ×6").
+  - A row of small color dots below the thumbnail, one dot per flower in the group (rose = 6 dots, hydrangea = 8 dots, peony = 4 dots, fivepetal = 4 dots). Each dot shows that flower's specific gradient shade from deep to light. Before color assignment, dots do not appear. After assignment, dots appear showing the full gradient spread at a glance.
+  - No live 3D canvas in the cards. Thumbnail is a static image rendered once, tinted via CSS filter or canvas overlay.- Display the 7-color palette as draggable color swatches (see Section 9 for exact colors).
+- User drags a color onto a flower type group → all flowers in that group automatically receive that color family with an HSL gradient applied:
+  - **Default gradient strategy (rose, hydrangea, fivepetal):** Fix H (hue) and S (saturation) from the base color. Distribute L (lightness) evenly across flowers in the group, from darker to lighter. Example: 6 flowers → L offsets of baseL, baseL+4%, baseL+8%, baseL+12%, baseL+16%, baseL+20%.
+  - **Peony gradient strategy:** Peony is a large statement flower that should always look vivid and saturated. The gradient range is narrower and shifted toward saturation: keep S at or above the base color's S value (never drop S), and use a smaller L step (half of the default). The lightest peony should still be clearly, visibly colored — never approaching white or pastel. Example: 4 peonies with base color S=70% L=50% → L offsets of baseL, baseL+3%, baseL+6%, baseL+9%, all with S held at 70% or above.
+  - Exact values can be hardcoded initially and adjusted later.
 - Dragging a new color onto the same group replaces the previous color.
 - The same color can be dragged onto multiple groups.
 - Groups that have not been assigned a color remain white (default: #F4EFE9).
@@ -186,7 +189,8 @@ Cake color picker also includes the default near-white #fafaf8 as an 8th option.
 - The `material.map = null` pattern for GLB models
 
 ### Must build new:
-- Screen 1 component: flower type groups rendered with the same 3D models as Screen 2 (fixed camera, no user rotation), draggable color swatches, gradient preview on flowers, start button, hint text
+- Screen 1 component: flower type cards with static thumbnail images (pre-rendered from 3D models), draggable color swatches, gradient preview (color-tinted thumbnails or color dots showing the gradient per flower), start button, hint text
+- Thumbnail generation: a utility that renders each flower model at a fixed angle, captures a snapshot, and outputs it as a static image for Screen 1 cards
 - Screen 2 updated color picker: two-row layout with conditional Row 1
 - Screen routing state (Screen 1 vs Screen 2)
 - Per-flower-type color assignment state
@@ -194,7 +198,8 @@ Cake color picker also includes the default near-white #fafaf8 as an 8th option.
 - Updated reset flow (return to Screen 1 + clear all)
 
 ### Must avoid:
-- Do not replace flower visuals on Screen 1 with abstract shapes, circles, icons, or placeholders. Use the actual 3D flower models.
+- Do not use abstract shapes, circles, or generic icons as flower visuals on Screen 1. Use static thumbnail images that are pre-rendered from the actual 3D flower models, so they look like real flowers.
+- Do not embed live 3D Canvas elements inside Screen 1 DOM cards. Use static images only.
 - Do not change flower model files or re-process GLB assets.
 - Do not implement flower size adjustment or facing rotation.
 - Do not implement "return to Screen 1 while preserving placed flowers."
@@ -205,7 +210,7 @@ Cake color picker also includes the default near-white #fafaf8 as an 8th option.
 
 1. **Old system fully removed:** `grep -r "primaryColorFamily\|secondaryColorFamily\|PRIMARY_TYPES\|SECONDARY_TYPES\|handlePrimaryFamily\|handleSecondaryFamily\|applyFamilyToTrayFlowers" src/` returns zero results.
 
-2. **Screen 1 renders correctly:** Opening the app shows a page with 4 flower type groups (rose ×6, hydrangea ×8, peony ×4, fivepetal ×4) rendered using the same 3D flower models as Screen 2, and 7 draggable color swatches. Flowers look like real flowers, not abstract circles or placeholders.
+2. **Screen 1 renders correctly:** Opening the app shows a page with 4 flower type cards. Each card shows all flowers in that group as individual thumbnails (rose ×6, hydrangea ×8, peony ×4, fivepetal ×4) that look like the actual flower shape (not circles or placeholders), the flower type name, count, and 7 draggable color swatches below. Before color assignment, thumbnails appear in default white/gray. No live 3D canvas on this screen.
 
 3. **Drag-to-assign works:** Dragging a color onto a flower type group causes all flowers in that group to visually update with a gradient (darkest to lightest) of that color family. Dragging a different color onto the same group replaces the previous assignment.
 
@@ -219,13 +224,15 @@ Cake color picker also includes the default near-white #fafaf8 as an 8th option.
 
 8. **Cake color non-regression:** Clicking the cake shows 7 colors + default near-white (#fafaf8). Selecting a color changes the cake body. This behavior is unchanged from before.
 
-9. **Gradient consistency:** Within a flower type group, the gradient goes from darker to lighter in a visually smooth progression. No flower in the group has the exact same color as another (unless the group has only 1 flower).
+9. **Gradient consistency:** Within a flower type group, the gradient goes from more saturated to lighter in a visually smooth progression. No flower in the group has the exact same color as another (unless the group has only 1 flower).
 
-10. **Procedural vs GLB compatibility:** Both fivepetal (procedural) and GLB flowers (rose, hydrangea, peony) correctly display assigned colors. GLB flowers have their texture maps set to null before color assignment.
+10. **Peony gradient saturation:** Peony flowers use a narrower, more saturated gradient than other flower types. Even the lightest peony must be clearly vivid and colored — never approaching white, pastel, or washed-out. Saturation (S) must stay at or above the base color's S value across all 4 peonies.
 
-11. **Reset returns to Screen 1:** Pressing reset clears all flower colors to default white, returns all flowers to tray, resets cake color to #fafaf8, resets camera, and navigates back to Screen 1.
+11. **Procedural vs GLB compatibility:** Both fivepetal (procedural) and GLB flowers (rose, hydrangea, peony) correctly display assigned colors. GLB flowers have their texture maps set to null before color assignment.
 
-12. **Non-goal guard:** No flower size slider, no facing rotation slider, no onboarding animation, no "return to Screen 1 while preserving arrangement" button exists anywhere in the UI after this round.
+12. **Reset returns to Screen 1:** Pressing reset clears all flower colors to default white, returns all flowers to tray, resets cake color to #fafaf8, resets camera, and navigates back to Screen 1.
+
+13. **Non-goal guard:** No flower size slider, no facing rotation slider, no onboarding animation, no "return to Screen 1 while preserving arrangement" button exists anywhere in the UI after this round.
 
 ## 11. Verification Checklist
 
@@ -236,7 +243,7 @@ After implementation, report the following:
 - [ ] List of new files created
 - [ ] List of modified files with summary of changes
 - [ ] Confirmation that Screen 1 renders without errors in browser
-- [ ] Confirmation that flowers on Screen 1 use actual 3D models, not placeholders
+- [ ] Confirmation that flowers on Screen 1 use static thumbnail images pre-rendered from 3D models, not abstract placeholders or live 3D canvases
 - [ ] Confirmation that drag-to-assign produces visible gradient on flower groups
 - [ ] Confirmation that "開始" transitions to Screen 2 with pre-colored flowers
 - [ ] Confirmation that single-flower color picker shows correct row layout
@@ -258,3 +265,4 @@ Explicitly not part of this round:
 - Mobile/touch optimization for Screen 1 drag interaction
 - New flower model acquisition or processing
 - Replacing flower visuals with abstract shapes or icons on any screen
+- Embedding live 3D Canvas elements inside Screen 1 DOM layout
