@@ -244,7 +244,7 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
     setHoverType(type)
   }
 
-  function handleDragLeave(type: FlowerType, e: React.DragEvent) {
+  function handleDragLeave(_type: FlowerType, e: React.DragEvent) {
     if (!e.currentTarget.contains(e.relatedTarget as Node)) setHoverType(null)
   }
 
