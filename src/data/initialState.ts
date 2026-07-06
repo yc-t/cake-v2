@@ -22,9 +22,10 @@ const PEONY_SLOTS: [number, number, number][] = [
   [8, TRAY_TOP, 6.5], [10, TRAY_TOP, 6.5], [12, TRAY_TOP, 6.5], [14, TRAY_TOP, 6.5],
 ]
 
-// FivePetal: 4 cols × 1 row
+// FivePetal: 4 cols × 2 rows
 const FIVEPETAL_SLOTS: [number, number, number][] = [
-  [8, TRAY_TOP, 8.8], [10, TRAY_TOP, 8.8], [12, TRAY_TOP, 8.8], [14, TRAY_TOP, 8.8],
+  [8, TRAY_TOP, 8.3], [10, TRAY_TOP, 8.3], [12, TRAY_TOP, 8.3], [14, TRAY_TOP, 8.3],
+  [8, TRAY_TOP, 9.4], [10, TRAY_TOP, 9.4], [12, TRAY_TOP, 9.4], [14, TRAY_TOP, 9.4],
 ]
 
 function makeFlower(

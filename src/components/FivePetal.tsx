@@ -120,5 +120,5 @@ export function FivePetal({ color }: Props) {
   // Sync color every render — synchronous, no effect timing issues
   mat.color.setRGB(color[0], color[1], color[2])
 
-  return <mesh geometry={GEO} material={mat} />
+  return <mesh geometry={GEO} material={mat} scale={0.5} />
 }
