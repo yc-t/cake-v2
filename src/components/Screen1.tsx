@@ -71,13 +71,17 @@ function ThumbnailCapture({ onCapture }: { onCapture: (url: string) => void }) {
   return null
 }
 
-function FlowerModelScene({ type }: { type: FlowerType }) {
-  switch (type) {
-    case 'rose':      return <Rose color={DEFAULT_COLOR} />
-    case 'hydrangea': return <Hydrangea color={DEFAULT_COLOR} />
-    case 'peony':     return <Peony color={DEFAULT_COLOR} />
-    case 'fivepetal': return <FivePetal color={DEFAULT_COLOR} />
-  }
+function FlowerModelScene({ type, onCapture }: { type: FlowerType; onCapture: (url: string) => void }) {
+  const model = (() => {
+    switch (type) {
+      case 'rose':      return <Rose color={DEFAULT_COLOR} />
+      case 'hydrangea': return <Hydrangea color={DEFAULT_COLOR} />
+      case 'peony':     return <Peony color={DEFAULT_COLOR} />
+      case 'fivepetal': return <FivePetal color={DEFAULT_COLOR} />
+    }
+  })()
+  // ThumbnailCapture lives inside Suspense so it only mounts after the GLB has loaded
+  return <>{model}<ThumbnailCapture onCapture={onCapture} /></>
 }
 
 const CAMERA_BY_TYPE: Record<FlowerType, [number, number, number]> = {
@@ -101,9 +105,8 @@ function ThumbnailRenderer({ type, onCapture }: { type: FlowerType; onCapture: (
         <hemisphereLight args={['#ffffff', '#e8e3dc', 1.2]} />
         <directionalLight position={[2, 5, 3]} intensity={0.8} />
         <Suspense fallback={null}>
-          <FlowerModelScene type={type} />
+          <FlowerModelScene type={type} onCapture={handleCapture} />
         </Suspense>
-        <ThumbnailCapture onCapture={handleCapture} />
       </Canvas>
     </div>
   )
