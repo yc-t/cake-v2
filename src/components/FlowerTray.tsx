@@ -25,9 +25,9 @@ function FlowerModel({ flower }: { flower: Flower }) {
 export function FlowerTray({ flowers, draggingId, selectedId: _selectedId, onFlowerPointerDown }: Props) {
   return (
     <group>
-      <mesh position={TRAY_POS}>
+      <mesh position={TRAY_POS} castShadow receiveShadow>
         <boxGeometry args={TRAY_SIZE} />
-        <meshStandardMaterial color="#f5f2ed" />
+        <meshStandardMaterial color="#e8ddd0" />
       </mesh>
 
       {flowers.map((flower) => (

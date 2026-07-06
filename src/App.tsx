@@ -35,7 +35,7 @@ function CameraLight() {
   const ref = useRef<THREE.DirectionalLight>(null)
   const { camera } = useThree()
   useFrame(() => { ref.current?.position.copy(camera.position) })
-  return <directionalLight ref={ref} intensity={0.5} />
+  return <directionalLight ref={ref} color="#fff5e6" intensity={0.5} />
 }
 
 function CakeScene({
@@ -50,11 +50,11 @@ function CakeScene({
   const boardY = -cake.height / 2 - board.height / 2
   return (
     <>
-      <mesh ref={cakeMeshRef}>
+      <mesh ref={cakeMeshRef} castShadow receiveShadow>
         <cylinderGeometry args={[cake.radius, cake.radius, cake.height, 64]} />
         <meshStandardMaterial color={rgb(cake.color)} />
       </mesh>
-      <mesh position={[0, boardY, 0]}>
+      <mesh position={[0, boardY, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[board.radius, board.radius, board.height, 64]} />
         <meshStandardMaterial color="#ffffff" />
       </mesh>
@@ -77,6 +77,7 @@ function SceneCapture({
 
 export default function App() {
   const [state, setState] = useState<AppState>(initialState)
+  const [creditsHover, setCreditsHover] = useState(false)
 
   // All refs must be declared unconditionally (React rules of hooks)
   const cakeMeshRef = useRef<THREE.Mesh>(null)
@@ -183,14 +184,32 @@ export default function App() {
     : null
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', background: 'linear-gradient(to bottom, #f0ebe4 0%, #e0d5c8 55%, #d4b896 100%)' }}>
       <Canvas
         camera={{ position: [2, 18, 28], fov: 50 }}
-        gl={{ toneMapping: THREE.NoToneMapping, preserveDrawingBuffer: true }}
+        shadows
+        gl={{ toneMapping: THREE.NoToneMapping, preserveDrawingBuffer: true, alpha: true }}
       >
-        <color attach="background" args={['#f5f2ed']} />
-        <ambientLight intensity={1.5} />
-        <hemisphereLight args={['#ffffff', '#f5f2ed', 1.0]} />
+        <ambientLight color="#fff5e6" intensity={1.5} />
+        <hemisphereLight args={['#fff5e6', '#d4b896', 1.0]} />
+        <directionalLight
+          castShadow
+          color="#fff5e6"
+          position={[5, 15, 8]}
+          intensity={0.5}
+          shadow-mapSize={[1024, 1024] as [number, number]}
+          shadow-camera-left={-20}
+          shadow-camera-right={30}
+          shadow-camera-top={25}
+          shadow-camera-bottom={-25}
+          shadow-camera-near={1}
+          shadow-camera-far={70}
+        />
+        {/* Table surface — aligned with board bottom (y = -2.3) */}
+        <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[5, -2.3, 3]}>
+          <planeGeometry args={[80, 80]} />
+          <meshStandardMaterial color="#d4b896" roughness={0.85} />
+        </mesh>
         <CameraLight />
         <SceneCapture glRef={glRef} cameraRef={cameraRef} />
 
@@ -266,6 +285,69 @@ export default function App() {
             <polyline points="2,3 2,6.5 5.5,6.5" stroke="#555" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
           </svg>
         </button>
+
+        {/* Credits */}
+        <div style={{ position: 'relative' }}
+          onMouseEnter={() => setCreditsHover(true)}
+          onMouseLeave={() => setCreditsHover(false)}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            height: 28,
+            cursor: 'default',
+            userSelect: 'none',
+            justifyContent: 'flex-end',
+          }}>
+            <span style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', letterSpacing: 0.2 }}>Credits</span>
+            <span style={{ fontSize: 15, color: 'rgba(0,0,0,0.5)', lineHeight: 1 }}>ⓘ</span>
+          </div>
+
+          {creditsHover && (
+            <div style={{
+              position: 'absolute',
+              bottom: '100%',
+              right: 0,
+              marginBottom: 6,
+              background: 'rgba(255,255,255,0.92)',
+              border: '1px solid rgba(0,0,0,0.08)',
+              borderRadius: 8,
+              padding: '8px 10px',
+              width: 240,
+              boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+              fontSize: 11,
+              lineHeight: 1.6,
+              color: 'rgba(0,0,0,0.45)',
+            }}>
+              <div style={{ marginBottom: 4, color: 'rgba(0,0,0,0.35)', fontWeight: 500 }}>3D models</div>
+              <div>
+                "Rose" by Heliona —{' '}
+                <span style={{ color: 'rgba(0,0,0,0.35)' }}>CC BY</span>{' '}
+                <a href="https://skfb.ly/ouCso" target="_blank" rel="noreferrer"
+                  style={{ color: 'rgba(0,0,0,0.38)', textDecoration: 'underline' }}>
+                  skfb.ly/ouCso
+                </a>
+              </div>
+              <div>
+                "Hydrangea" by heyyodd —{' '}
+                <span style={{ color: 'rgba(0,0,0,0.35)' }}>CC BY-NC</span>{' '}
+                <a href="https://skfb.ly/opZrM" target="_blank" rel="noreferrer"
+                  style={{ color: 'rgba(0,0,0,0.38)', textDecoration: 'underline' }}>
+                  skfb.ly/opZrM
+                </a>
+              </div>
+              <div>
+                "Peony" by Terrie Simmons-Ehrhardt —{' '}
+                <span style={{ color: 'rgba(0,0,0,0.35)' }}>CC BY-NC-SA</span>{' '}
+                <a href="https://skfb.ly/ouDZC" target="_blank" rel="noreferrer"
+                  style={{ color: 'rgba(0,0,0,0.38)', textDecoration: 'underline' }}>
+                  skfb.ly/ouDZC
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

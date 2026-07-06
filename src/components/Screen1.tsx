@@ -258,78 +258,91 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
   }
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: '#f5f2ed' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: 'linear-gradient(to bottom, #f5f3f0, #e8e4de)' }}>
 
       {GROUPS.map(({ type }) => (
         <ThumbnailRenderer key={type} type={type} onCapture={handleCapture} />
       ))}
 
-      {/* Main card layout — generous bottom padding to clear the swatch bar */}
+      {/* Main card layout */}
       <div style={{
         position: 'absolute',
         inset: 0,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '20px 28px 140px',
+        padding: '20px 28px 0',
+        paddingBottom: 0,
         boxSizing: 'border-box',
-        gap: 16,
       }}>
+        {/* Cards zone — flex:1 centers the cards vertically in available space */}
         <div style={{
-          fontFamily: 'sans-serif',
-          fontSize: 14,
-          color: 'rgba(0,0,0,0.36)',
-          userSelect: 'none',
-          letterSpacing: '0.04em',
-        }}>
-          選擇花色
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 12,
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 16,
           width: '100%',
-          maxWidth: 480,
         }}>
-          {GROUPS.map(({ type, label }) => {
-            const groupFlowers = flowers.filter((f: Flower) => f.type === type)
-            const hasColor = (groupFlowers[0]?.baseColor ?? null) !== null
-            const displayThumbnail = tintedThumbnails[type] ?? thumbnails[type] ?? null
-            const flowerColors = hasColor ? groupFlowers.map(f => rgbToHex(f.color)) : []
-            return (
-              <FlowerCard
-                key={type}
-                label={label}
-                count={groupFlowers.length}
-                displayThumbnail={displayThumbnail}
-                flowerColors={flowerColors}
-                isHover={hoverType === type}
-                onDragOver={(e) => handleDragOver(type, e)}
-                onDragLeave={(e) => handleDragLeave(type, e)}
-                onDrop={(e) => handleDrop(type, e)}
-              />
-            )
-          })}
-        </div>
-      </div>
+          <div style={{
+            fontFamily: 'sans-serif',
+            fontSize: 14,
+            color: 'rgba(0,0,0,0.36)',
+            userSelect: 'none',
+            letterSpacing: '0.04em',
+          }}>
+            選擇花色
+          </div>
 
-      {/* Hint text */}
-      <div style={{
-        position: 'absolute',
-        top: '45%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        fontFamily: 'sans-serif',
-        fontSize: 17,
-        color: 'rgba(0,0,0,0.24)',
-        pointerEvents: 'none',
-        userSelect: 'none',
-        opacity: hintVisible ? 1 : 0,
-        transition: 'opacity 0.6s',
-      }}>
-        把顏色拖到花上
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 12,
+            width: '100%',
+            maxWidth: 480,
+          }}>
+            {GROUPS.map(({ type, label }) => {
+              const groupFlowers = flowers.filter((f: Flower) => f.type === type)
+              const hasColor = (groupFlowers[0]?.baseColor ?? null) !== null
+              const displayThumbnail = tintedThumbnails[type] ?? thumbnails[type] ?? null
+              const flowerColors = hasColor ? groupFlowers.map(f => rgbToHex(f.color)) : []
+              return (
+                <FlowerCard
+                  key={type}
+                  label={label}
+                  count={groupFlowers.length}
+                  displayThumbnail={displayThumbnail}
+                  flowerColors={flowerColors}
+                  isHover={hoverType === type}
+                  onDragOver={(e) => handleDragOver(type, e)}
+                  onDragLeave={(e) => handleDragLeave(type, e)}
+                  onDrop={(e) => handleDrop(type, e)}
+                />
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Hint text — between cards and swatch bar */}
+        <div style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          fontFamily: 'sans-serif',
+          fontSize: 15,
+          color: 'rgba(0,0,0,0.28)',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          opacity: hintVisible ? 1 : 0,
+          transition: 'opacity 0.6s',
+          letterSpacing: '0.02em',
+        }}>
+          把顏色拖到花上
+        </div>
+
+        {/* Spacer above swatch bar */}
+        <div style={{ height: 80 }} />
       </div>
 
       {/* Palette swatches — smaller, sits comfortably above start button */}
@@ -344,7 +357,7 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
         backdropFilter: 'blur(10px)',
         borderRadius: 48,
         padding: '8px 16px',
-        boxShadow: '0 3px 16px rgba(0,0,0,0.10)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.14)',
         userSelect: 'none',
         zIndex: 20,
       }}>
