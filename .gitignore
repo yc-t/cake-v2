@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Raw unoptimized source models (too large for GitHub)
+public/models/*-original.glb
