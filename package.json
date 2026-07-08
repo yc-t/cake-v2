@@ -7,11 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-thumbnails": "node scripts/generate-thumbnails.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "posthog-js": "^1.398.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "three": "^0.185.0"
@@ -24,6 +26,7 @@
     "@types/three": "^0.185.0",
     "@vitejs/plugin-react": "^6.0.2",
     "oxlint": "^1.69.0",
+    "puppeteer-core": "^23.11.1",
     "typescript": "~6.0.2",
     "vite": "^8.1.0"
   }

@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, Suspense } from 'react'
+import React, { useRef, useState, useCallback, useEffect, Suspense } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
@@ -10,6 +10,7 @@ import { DragManager } from './components/DragManager'
 import { Screen1 } from './components/Screen1'
 import { FlowerColorPicker } from './components/FlowerColorPicker'
 import type { DragInfo } from './components/DragManager'
+import { trackScreen2Enter, trackScreen2Exit } from './lib/analytics'
 
 const DEG = Math.PI / 180
 
@@ -134,6 +135,7 @@ export default function App() {
 
   // Screen 1 → Screen 2 transition
   function handleStart() {
+    trackScreen2Enter()
     setState(s => ({ ...s, currentScreen: 'screen2' }))
   }
 
@@ -146,6 +148,7 @@ export default function App() {
   }, [])
 
   function handleReset() {
+    trackScreen2Exit('reset')
     setState({ ...initialState })
     const camera = cameraRef.current as THREE.PerspectiveCamera | null
     if (camera) camera.position.set(2, 18, 28)
@@ -166,6 +169,14 @@ export default function App() {
       URL.revokeObjectURL(url)
     }, 'image/png')
   }
+
+  // Fire screen2_exit when the user closes/navigates away while on screen2
+  useEffect(() => {
+    if (state.currentScreen !== 'screen2') return
+    const handler = () => trackScreen2Exit('page_close')
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [state.currentScreen])
 
   // Screen 1
   if (state.currentScreen === 'screen1') {

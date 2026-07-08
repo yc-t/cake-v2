@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import type { Flower } from '../types'
 import { PALETTE } from '../data/palette'
 import { computeGradient, computePeonyGradient } from '../data/gradient'
+import { trackChangeFlowerColor } from '../lib/analytics'
 
 interface Props {
   flower: Flower
@@ -83,7 +84,7 @@ export function FlowerColorPicker({ flower, onShadeChange, onFamilyChange }: Pro
           {PALETTE.map(p => (
             <div
               key={p.hex}
-              onClick={() => { onFamilyChange(p.hex); setWheelOpen(false) }}
+              onClick={() => { trackChangeFlowerColor('row2'); onFamilyChange(p.hex); setWheelOpen(false) }}
               title={p.name}
               style={{
                 ...dotBase,
@@ -105,7 +106,7 @@ export function FlowerColorPicker({ flower, onShadeChange, onFamilyChange }: Pro
           return (
             <div
               key={i}
-              onClick={() => onShadeChange(color)}
+              onClick={() => { trackChangeFlowerColor('row1'); onShadeChange(color) }}
               style={{
                 ...dotBase,
                 background: css,

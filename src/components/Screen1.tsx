@@ -1,12 +1,7 @@
-import React, { useState, useEffect, useRef, Suspense } from 'react'
-import { Canvas, useThree } from '@react-three/fiber'
-import * as THREE from 'three'
+import React, { useState, useEffect } from 'react'
 import type { Flower, FlowerType } from '../types'
-import { Rose } from './Rose'
-import { Hydrangea } from './Hydrangea'
-import { Peony } from './Peony'
-import { FivePetal } from './FivePetal'
 import { PALETTE } from '../data/palette'
+import { trackScreen1Enter } from '../lib/analytics'
 
 interface Props {
   flowers: Flower[]
@@ -21,14 +16,20 @@ const GROUPS: { type: FlowerType; label: string }[] = [
   { type: 'fivepetal', label: '五瓣花' },
 ]
 
-const DEFAULT_COLOR: [number, number, number] = [0.957, 0.937, 0.914] // #F4EFE9
+// Pre-generated at build time via: npm run generate-thumbnails
+const STATIC_THUMBNAILS: Record<FlowerType, string> = {
+  rose:      '/thumbnails/rose.png',
+  hydrangea: '/thumbnails/hydrangea.png',
+  peony:     '/thumbnails/peony.png',
+  fivepetal: '/thumbnails/fivepetal.png',
+}
 
 function rgbToHex([r, g, b]: [number, number, number]): string {
   return '#' + [r, g, b].map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('')
 }
 
 // Canvas pixel tinting — only tints non-transparent pixels, background stays transparent.
-function tintImage(baseDataUrl: string, tintHex: string): Promise<string> {
+function tintImage(baseUrl: string, tintHex: string): Promise<string> {
   return new Promise(resolve => {
     const img = new Image()
     img.onload = () => {
@@ -52,71 +53,16 @@ function tintImage(baseDataUrl: string, tintHex: string): Promise<string> {
       ctx.putImageData(imageData, 0, 0)
       resolve(canvas.toDataURL('image/png'))
     }
-    img.src = baseDataUrl
+    img.crossOrigin = 'anonymous'
+    img.src = baseUrl
   })
-}
-
-// Captures snapshot after first render frame
-function ThumbnailCapture({ onCapture }: { onCapture: (url: string) => void }) {
-  const { gl } = useThree()
-  const captured = useRef(false)
-  useEffect(() => {
-    if (captured.current) return
-    captured.current = true
-    requestAnimationFrame(() => {
-      const url = gl.domElement.toDataURL('image/png')
-      onCapture(url)
-    })
-  }, [gl, onCapture])
-  return null
-}
-
-function FlowerModelScene({ type, onCapture }: { type: FlowerType; onCapture: (url: string) => void }) {
-  const model = (() => {
-    switch (type) {
-      case 'rose':      return <Rose color={DEFAULT_COLOR} />
-      case 'hydrangea': return <Hydrangea color={DEFAULT_COLOR} />
-      case 'peony':     return <Peony color={DEFAULT_COLOR} />
-      case 'fivepetal': return <FivePetal color={DEFAULT_COLOR} />
-    }
-  })()
-  // ThumbnailCapture lives inside Suspense so it only mounts after the GLB has loaded
-  return <>{model}<ThumbnailCapture onCapture={onCapture} /></>
-}
-
-const CAMERA_BY_TYPE: Record<FlowerType, [number, number, number]> = {
-  rose:      [0, 3, 3],
-  hydrangea: [0, 4, 3],
-  peony:     [0, 4, 3],
-  fivepetal: [0, 3, 2],
-}
-
-function ThumbnailRenderer({ type, onCapture }: { type: FlowerType; onCapture: (type: FlowerType, url: string) => void }) {
-  const handleCapture = (url: string) => onCapture(type, url)
-  return (
-    <div style={{ position: 'fixed', left: -9999, top: -9999, width: 200, height: 200 }}>
-      <Canvas
-        camera={{ position: CAMERA_BY_TYPE[type], fov: 50 }}
-        gl={{ toneMapping: THREE.NoToneMapping, preserveDrawingBuffer: true, antialias: true, alpha: true }}
-        style={{ width: 200, height: 200 }}
-      >
-        {/* No background color — transparent canvas */}
-        <ambientLight intensity={1.8} />
-        <hemisphereLight args={['#ffffff', '#e8e3dc', 1.2]} />
-        <directionalLight position={[2, 5, 3]} intensity={0.8} />
-        <Suspense fallback={null}>
-          <FlowerModelScene type={type} onCapture={handleCapture} />
-        </Suspense>
-      </Canvas>
-    </div>
-  )
 }
 
 interface CardProps {
   label: string
   count: number
-  displayThumbnail: string | null
-  flowerColors: string[]   // per-flower hex dark→light; empty if no color assigned
+  displayThumbnail: string
+  flowerColors: string[]
   isHover: boolean
   onDragOver: (e: React.DragEvent) => void
   onDragLeave: (e: React.DragEvent) => void
@@ -144,7 +90,6 @@ function FlowerCard({ label, count, displayThumbnail, flowerColors, isHover, onD
         minWidth: 0,
       }}
     >
-      {/* Thumbnail — transparent bg; flower-only pixels tinted */}
       <div style={{
         width: 90,
         height: 90,
@@ -156,18 +101,13 @@ function FlowerCard({ label, count, displayThumbnail, flowerColors, isHover, onD
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        {displayThumbnail ? (
-          <img
-            src={displayThumbnail}
-            alt={label}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
-          />
-        ) : (
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#d8d3cb' }} />
-        )}
+        <img
+          src={displayThumbnail}
+          alt={label}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
+        />
       </div>
 
-      {/* Label + count */}
       <div style={{
         fontFamily: 'sans-serif',
         fontSize: 13,
@@ -177,7 +117,6 @@ function FlowerCard({ label, count, displayThumbnail, flowerColors, isHover, onD
         {label} ×{count}
       </div>
 
-      {/* Gradient dots — one per flower, dark→light, only when color assigned */}
       {flowerColors.length > 0 && (
         <div style={{
           display: 'flex',
@@ -208,18 +147,13 @@ function FlowerCard({ label, count, displayThumbnail, flowerColors, isHover, onD
 export function Screen1({ flowers, onColorAssign, onStart }: Props) {
   const [hintVisible, setHintVisible] = useState(true)
   const [hoverType, setHoverType] = useState<FlowerType | null>(null)
-  const [thumbnails, setThumbnails] = useState<Partial<Record<FlowerType, string>>>({})
   const [tintedThumbnails, setTintedThumbnails] = useState<Partial<Record<FlowerType, string>>>({})
 
-  const handleCapture = (type: FlowerType, url: string) => {
-    setThumbnails(prev => ({ ...prev, [type]: url }))
-  }
+  useEffect(() => { trackScreen1Enter() }, [])
 
-  // Re-tint whenever base thumbnails or flower colors change
   useEffect(() => {
     let cancelled = false
     GROUPS.forEach(({ type }) => {
-      const base = thumbnails[type]
       const groupFlowers = flowers.filter(f => f.type === type)
       const hasColor = (groupFlowers[0]?.baseColor ?? null) !== null
 
@@ -232,15 +166,14 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
         })
         return
       }
-      if (!base) return
 
       const darkestHex = rgbToHex(groupFlowers[0].color)
-      tintImage(base, darkestHex).then(tinted => {
+      tintImage(STATIC_THUMBNAILS[type], darkestHex).then(tinted => {
         if (!cancelled) setTintedThumbnails(prev => ({ ...prev, [type]: tinted }))
       })
     })
     return () => { cancelled = true }
-  }, [thumbnails, flowers])
+  }, [flowers])
 
   function handleDragOver(type: FlowerType, e: React.DragEvent) {
     e.preventDefault()
@@ -263,10 +196,6 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: 'linear-gradient(to bottom, #f5f3f0, #e8e4de)' }}>
 
-      {GROUPS.map(({ type }) => (
-        <ThumbnailRenderer key={type} type={type} onCapture={handleCapture} />
-      ))}
-
       {/* Main card layout */}
       <div style={{
         position: 'absolute',
@@ -278,7 +207,6 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
         paddingBottom: 0,
         boxSizing: 'border-box',
       }}>
-        {/* Cards zone — flex:1 centers the cards vertically in available space */}
         <div style={{
           flex: 1,
           display: 'flex',
@@ -308,7 +236,7 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
             {GROUPS.map(({ type, label }) => {
               const groupFlowers = flowers.filter((f: Flower) => f.type === type)
               const hasColor = (groupFlowers[0]?.baseColor ?? null) !== null
-              const displayThumbnail = tintedThumbnails[type] ?? thumbnails[type] ?? null
+              const displayThumbnail = tintedThumbnails[type] ?? STATIC_THUMBNAILS[type]
               const flowerColors = hasColor ? groupFlowers.map(f => rgbToHex(f.color)) : []
               return (
                 <FlowerCard
@@ -327,7 +255,6 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
           </div>
         </div>
 
-        {/* Hint text — between cards and swatch bar */}
         <div style={{
           height: 64,
           display: 'flex',
@@ -344,11 +271,10 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
           把顏色拖到花上
         </div>
 
-        {/* Spacer above swatch bar */}
         <div style={{ height: 80 }} />
       </div>
 
-      {/* Palette swatches — smaller, sits comfortably above start button */}
+      {/* Palette swatches */}
       <div style={{
         position: 'absolute',
         bottom: 28,
