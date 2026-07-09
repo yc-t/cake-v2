@@ -3,16 +3,14 @@ import posthog from 'posthog-js'
 const KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined
 
 if (KEY) {
-  try {
-    posthog.init(KEY, {
-      api_host: 'https://us.i.posthog.com',
-      autocapture: false,
-      capture_pageview: false,
-      capture_pageleave: false,
-    })
-  } catch (e) {
-    console.error('[analytics] posthog.init() FAILED:', e)
-  }
+  posthog.init(KEY, {
+    api_host: 'https://us.i.posthog.com',
+    autocapture: false,
+    capture_pageview: false,
+    capture_pageleave: false,
+    person_profiles: 'always',
+    request_batching: false,
+  })
 }
 
 function capture(
