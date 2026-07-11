@@ -55,3 +55,20 @@ export function trackScreen2Exit(reason: 'reset' | 'page_close') {
 export function trackChangeFlowerColor(row: 'row1' | 'row2') {
   capture('change_single_flower_color', { row })
 }
+
+export function trackFeedbackRatingSelected(props: {
+  rating: number
+  trigger_source: string
+}) {
+  capture('feedback_rating_selected', props)
+}
+
+export function trackUserFeedback(props: {
+  rating: number
+  pain_points: string[]
+  feature_priority: string
+  comment: string
+  trigger_source: string
+}) {
+  capture('user_feedback', props)
+}

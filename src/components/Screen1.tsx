@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import type { Flower, FlowerType } from '../types'
 import { PALETTE } from '../data/palette'
 import { trackScreen1Enter } from '../lib/analytics'
+import { useLanguage } from '../i18n'
 
 interface Props {
   flowers: Flower[]
@@ -9,11 +10,11 @@ interface Props {
   onStart: () => void
 }
 
-const GROUPS: { type: FlowerType; label: string }[] = [
-  { type: 'rose',      label: '玫瑰' },
-  { type: 'hydrangea', label: '繡球花' },
-  { type: 'peony',     label: '芍藥' },
-  { type: 'fivepetal', label: '五瓣花' },
+const GROUPS: { type: FlowerType; labelKey: string }[] = [
+  { type: 'rose',      labelKey: 'flower.rose' },
+  { type: 'hydrangea', labelKey: 'flower.hydrangea' },
+  { type: 'peony',     labelKey: 'flower.peony' },
+  { type: 'fivepetal', labelKey: 'flower.fivepetal' },
 ]
 
 // Pre-generated at build time via: npm run generate-thumbnails
@@ -145,6 +146,7 @@ function FlowerCard({ label, count, displayThumbnail, flowerColors, isHover, onD
 }
 
 export function Screen1({ flowers, onColorAssign, onStart }: Props) {
+  const { t } = useLanguage()
   const [hintVisible, setHintVisible] = useState(true)
   const [hoverType, setHoverType] = useState<FlowerType | null>(null)
   const [tintedThumbnails, setTintedThumbnails] = useState<Partial<Record<FlowerType, string>>>({})
@@ -223,7 +225,7 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
             userSelect: 'none',
             letterSpacing: '0.04em',
           }}>
-            選擇花色
+            {t('screen1.title')}
           </div>
 
           <div style={{
@@ -233,7 +235,7 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
             width: '100%',
             maxWidth: 480,
           }}>
-            {GROUPS.map(({ type, label }) => {
+            {GROUPS.map(({ type, labelKey }) => {
               const groupFlowers = flowers.filter((f: Flower) => f.type === type)
               const hasColor = (groupFlowers[0]?.baseColor ?? null) !== null
               const displayThumbnail = tintedThumbnails[type] ?? STATIC_THUMBNAILS[type]
@@ -241,7 +243,7 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
               return (
                 <FlowerCard
                   key={type}
-                  label={label}
+                  label={t(labelKey)}
                   count={groupFlowers.length}
                   displayThumbnail={displayThumbnail}
                   flowerColors={flowerColors}
@@ -268,7 +270,7 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
           transition: 'opacity 0.6s',
           letterSpacing: '0.02em',
         }}>
-          把顏色拖到花上
+          {t('screen1.hint')}
         </div>
 
         <div style={{ height: 80 }} />
@@ -295,7 +297,7 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
             key={color.hex}
             draggable
             onDragStart={(e) => e.dataTransfer.setData('hex', color.hex)}
-            title={color.name}
+            title={t(`color.${color.key}`)}
             style={{
               width: 30,
               height: 30,
@@ -331,7 +333,7 @@ export function Screen1({ flowers, onColorAssign, onStart }: Props) {
           boxShadow: '0 2px 10px rgba(0,0,0,0.16)',
         }}
       >
-        開始
+        {t('screen1.start')}
       </button>
     </div>
   )

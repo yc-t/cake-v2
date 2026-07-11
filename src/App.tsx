@@ -11,6 +11,8 @@ import { Screen1 } from './components/Screen1'
 import { FlowerColorPicker } from './components/FlowerColorPicker'
 import type { DragInfo } from './components/DragManager'
 import { trackScreen2Enter, trackScreen2Exit } from './lib/analytics'
+import { useLanguage } from './i18n'
+import { FeedbackModal } from './components/FeedbackModal'
 
 const DEG = Math.PI / 180
 
@@ -76,9 +78,25 @@ function SceneCapture({
   return null
 }
 
+const FEEDBACK_LS_KEY = 'cake_feedback_shown_v1'
+
+const FEEDBACK_ICON = (
+  <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M1.5 1.5h12v9H8.2l-2.7 2.5V10.5H1.5V1.5z"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
 export default function App() {
+  const { t } = useLanguage()
   const [state, setState] = useState<AppState>(initialState)
   const [creditsHover, setCreditsHover] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [feedbackTrigger, setFeedbackTrigger] = useState('manual')
 
   // All refs must be declared unconditionally (React rules of hooks)
   const cakeMeshRef = useRef<THREE.Mesh>(null)
@@ -86,6 +104,36 @@ export default function App() {
   const dragRef = useRef<DragInfo | null>(null)
   const glRef = useRef<THREE.WebGLRenderer>(null)
   const cameraRef = useRef<THREE.Camera>(null)
+  // Prevent duplicate auto-triggers (also initialised to true if already shown)
+  const feedbackTriggeredRef = useRef(!!localStorage.getItem(FEEDBACK_LS_KEY))
+  const prevCakeCountRef = useRef(0)
+
+  // ── Feedback auto-trigger ───────────────────────────────────────────────
+  function tryShowFeedback(source: string) {
+    if (feedbackTriggeredRef.current) return
+    feedbackTriggeredRef.current = true
+    localStorage.setItem(FEEDBACK_LS_KEY, '1')
+    setTimeout(() => {
+      setFeedbackTrigger(source)
+      setFeedbackOpen(true)
+    }, 2000)
+  }
+
+  // Condition b: 4th flower placed on cake
+  useEffect(() => {
+    if (state.currentScreen !== 'screen2') return
+    const count = state.flowers.filter(f => f.onCake).length
+    if (prevCakeCountRef.current < 4 && count >= 4) tryShowFeedback('flower_count')
+    prevCakeCountRef.current = count
+  }, [state.flowers, state.currentScreen])
+
+  // Condition c: 90 seconds on Screen 2
+  useEffect(() => {
+    if (state.currentScreen !== 'screen2') return
+    const timer = setTimeout(() => tryShowFeedback('time'), 90000)
+    return () => clearTimeout(timer)
+  }, [state.currentScreen])
+  // ────────────────────────────────────────────────────────────────────────
 
   // Screen 2: change shade only — keeps baseColor, changes color
   function handleFlowerShadeChange(color: [number, number, number]) {
@@ -168,6 +216,7 @@ export default function App() {
       a.click()
       URL.revokeObjectURL(url)
     }, 'image/png')
+    tryShowFeedback('screenshot')
   }
 
   // Fire screen2_exit when the user closes/navigates away while on screen2
@@ -271,10 +320,52 @@ export default function App() {
         />
       )}
 
+      {/* Feedback button — top right, to the left of LanguageSwitcher */}
+      <button
+        onClick={() => {
+          feedbackTriggeredRef.current = true
+          localStorage.setItem(FEEDBACK_LS_KEY, '1')
+          setFeedbackTrigger('manual')
+          setFeedbackOpen(true)
+        }}
+        style={{
+          position: 'fixed',
+          top: 16,
+          right: 64,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          height: 40,
+          padding: '0 14px',
+          background: 'rgba(0,0,0,0.06)',
+          border: '1.5px solid rgba(0,0,0,0.08)',
+          borderRadius: 20,
+          cursor: 'pointer',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+          fontFamily: 'sans-serif',
+          fontSize: 13,
+          color: '#555',
+          zIndex: 20,
+          letterSpacing: '0.01em',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,0,0,0.12)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,0,0,0.06)' }}
+      >
+        {FEEDBACK_ICON}
+        {t('feedback.button')}
+      </button>
+
+      {feedbackOpen && (
+        <FeedbackModal
+          triggerSource={feedbackTrigger}
+          onClose={() => setFeedbackOpen(false)}
+        />
+      )}
+
       <div style={{ position: 'fixed', bottom: 28, right: 28, zIndex: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <button
           onClick={handleScreenshot}
-          title="儲存截圖"
+          title={t('btn.screenshot')}
           style={btnStyle}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.12)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.06)' }}
@@ -286,7 +377,7 @@ export default function App() {
         </button>
         <button
           onClick={handleReset}
-          title="重置"
+          title={t('btn.reset')}
           style={btnStyle}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.12)' }}
           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.06)' }}
@@ -311,7 +402,7 @@ export default function App() {
             userSelect: 'none',
             justifyContent: 'flex-end',
           }}>
-            <span style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', letterSpacing: 0.2 }}>Credits</span>
+            <span style={{ fontSize: 11, color: 'rgba(0,0,0,0.5)', letterSpacing: 0.2 }}>{t('credits.label')}</span>
             <span style={{ fontSize: 15, color: 'rgba(0,0,0,0.5)', lineHeight: 1 }}>ⓘ</span>
           </div>
 
@@ -331,7 +422,7 @@ export default function App() {
               lineHeight: 1.6,
               color: 'rgba(0,0,0,0.45)',
             }}>
-              <div style={{ marginBottom: 4, color: 'rgba(0,0,0,0.35)', fontWeight: 500 }}>3D models</div>
+              <div style={{ marginBottom: 4, color: 'rgba(0,0,0,0.35)', fontWeight: 500 }}>{t('credits.3dmodels')}</div>
               <div>
                 "Rose" by Heliona —{' '}
                 <span style={{ color: 'rgba(0,0,0,0.35)' }}>CC BY</span>{' '}
