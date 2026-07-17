@@ -25,3 +25,6 @@ dist-ssr
 
 # Raw unoptimized source models (too large for GitHub)
 public/models/*-original.glb
+
+# Claude Code personal local settings
+.claude/settings.local.json
