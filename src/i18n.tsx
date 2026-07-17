@@ -36,6 +36,10 @@ const translations: Record<Locale, Record<string, string>> = {
     'color.warmWhite': '暖白',
     'lang.zh': '繁體中文',
     'lang.en': 'English',
+    'layout.label': '佈局',
+    'layout.crescent': '新月弧',
+    'layout.wreath': '雙群花圈',
+    'layout.dome': '滿版圓頂',
   },
   'en': {
     'feedback.button': 'Feedback',
@@ -70,6 +74,10 @@ const translations: Record<Locale, Record<string, string>> = {
     'color.warmWhite': 'Warm White',
     'lang.zh': '繁體中文',
     'lang.en': 'English',
+    'layout.label': 'Layout',
+    'layout.crescent': 'Crescent',
+    'layout.wreath': 'Wreath',
+    'layout.dome': 'Dome',
   },
 }
 

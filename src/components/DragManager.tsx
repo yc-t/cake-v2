@@ -183,7 +183,7 @@ export function DragManager({ state, setState, cakeMeshRef, orbitRef, dragRef, o
                                           <FivePetal color={c} />
 
   return (
-    <group ref={previewGroupRef} position={[0, 999, 0]}>
+    <group ref={previewGroupRef} position={[0, 999, 0]} scale={draggingFlower.scale}>
       {preview}
     </group>
   )

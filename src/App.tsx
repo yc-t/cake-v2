@@ -9,7 +9,12 @@ import { FlowerTray } from './components/FlowerTray'
 import { DragManager } from './components/DragManager'
 import { Screen1 } from './components/Screen1'
 import { FlowerColorPicker } from './components/FlowerColorPicker'
+import { LayoutPicker } from './components/LayoutPicker'
 import type { DragInfo } from './components/DragManager'
+import type { LayoutType } from './layout/types'
+import { generateCrescent } from './layout/crescent'
+import { generateWreath } from './layout/wreath'
+import { generateDome } from './layout/dome'
 import { trackScreen2Enter, trackScreen2Exit } from './lib/analytics'
 import { useLanguage } from './i18n'
 import { FeedbackModal } from './components/FeedbackModal'
@@ -181,6 +186,40 @@ export default function App() {
     })
   }
 
+  // Screen 2: apply a layout prototype (layout-engine-spec §6)
+  // D4 決議：套用佈局 = 重排整顆蛋糕，已在蛋糕上的花先收回 tray 再重新佈局
+  function handleApplyLayout(layout: LayoutType) {
+    // 生成放在 setState 外（StrictMode 下 updater 會被雙重呼叫，生成含隨機性）
+    const cake = { radius: state.cake.layers[0].radius, height: state.cake.layers[0].height }
+    const generate =
+      layout === 'crescent' ? generateCrescent :
+      layout === 'wreath'   ? generateWreath :
+                              generateDome
+    const seed = Math.floor(Math.random() * 0xffffffff) >>> 0
+    const { result, report } = generate(state.flowers, cake, seed)
+    if (!report.pass) {
+      // 已知情況：dome 覆蓋率受庫存上限限制（backlog.md 設計提議），回傳違規最少版本
+      console.warn(
+        `[layout] ${layout} 硬約束未全數通過（seed ${result.seed}）：`,
+        report.checks.filter(c => !c.pass).map(c => `${c.id}: ${c.value}（limit ${c.limit}）`),
+      )
+    }
+    const placementById = new Map(result.placements.map(p => [p.flowerId, p]))
+    setState(s => ({
+      ...s,
+      selectedId: null,
+      draggingId: null,
+      flowers: s.flowers.map(f => {
+        const p = placementById.get(f.id)
+        if (p) {
+          return { ...f, position: p.position, rotation: p.rotation, scale: p.scale, onCake: true }
+        }
+        // 未被佈局選用的花收回 tray（scale 重置比照 DragManager 拖回行為）
+        return { ...f, position: f.slotPosition, rotation: [0, 0, 0] as [number, number, number], scale: 1, onCake: false }
+      }),
+    }))
+  }
+
   // Screen 1 → Screen 2 transition
   function handleStart() {
     trackScreen2Enter()
@@ -311,6 +350,8 @@ export default function App() {
           }}
         />
       </Canvas>
+
+      <LayoutPicker onApply={handleApplyLayout} />
 
       {selectedFlower && (
         <FlowerColorPicker

@@ -35,6 +35,7 @@ export function FlowerTray({ flowers, draggingId, selectedId: _selectedId, onFlo
           key={flower.id}
           position={flower.position}
           rotation={flower.rotation}
+          scale={flower.scale}
           visible={flower.id !== draggingId}
           onPointerDown={(e) => {
             if (e.nativeEvent.button !== 0) return
