@@ -6,9 +6,9 @@ import { Rose } from './Rose'
 import { Hydrangea } from './Hydrangea'
 import { Peony } from './Peony'
 import { FivePetal } from './FivePetal'
+import { SURFACE_OFFSET, surfaceTransform } from '../layout/placement'
 
 const UP = new THREE.Vector3(0, 1, 0)
-const SURFACE_OFFSET = 0.02
 
 export type DragInfo = {
   flowerId: string
@@ -130,15 +130,13 @@ export function DragManager({ state, setState, cakeMeshRef, orbitRef, dragRef, o
       previewPos.current.set(0, 999, 0)
 
       if (snap) {
-        const quat = new THREE.Quaternion().setFromUnitVectors(UP, snap.normal)
-        const euler = new THREE.Euler().setFromQuaternion(quat)
-        const pos = snap.point.clone().addScaledVector(snap.normal, SURFACE_OFFSET)
+        const { position, rotation } = surfaceTransform(snap.point, snap.normal)
         setState(s => ({
           ...s,
           draggingId: null,
           flowers: s.flowers.map(f =>
             f.id === drag.flowerId
-              ? { ...f, position: [pos.x, pos.y, pos.z], rotation: [euler.x, euler.y, euler.z], onCake: true }
+              ? { ...f, position, rotation, onCake: true }
               : f
           ),
         }))
@@ -148,7 +146,7 @@ export function DragManager({ state, setState, cakeMeshRef, orbitRef, dragRef, o
           draggingId: null,
           flowers: s.flowers.map(f =>
             f.id === drag.flowerId
-              ? { ...f, position: f.slotPosition, rotation: [0, 0, 0], onCake: false }
+              ? { ...f, position: f.slotPosition, rotation: [0, 0, 0], scale: 1, onCake: false }
               : f
           ),
         }))
