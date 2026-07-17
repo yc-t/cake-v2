@@ -44,7 +44,20 @@ export function checkLayout(result: LayoutResult, cake: CakeSpec): ConstraintRep
     })
     checks.push(checkThickThinRatio(result.placements))
   }
-  // wreath / dome 的專屬檢查在階段二加入
+  if (result.layout === 'wreath') {
+    checks.push(checkWreathAngle(result.placements))
+    checks.push(checkWreathCenterClear(result.placements, cake))
+  }
+  if (result.layout === 'dome') {
+    const { coverage } = topCoverage(result.placements, cake)
+    checks.push({
+      id: 'dome-top-coverage',
+      pass: coverage >= LIMITS.DOME_TOP_COVERAGE_MIN,
+      value: `${(coverage * 100).toFixed(1)}%`,
+      limit: `≥ ${LIMITS.DOME_TOP_COVERAGE_MIN * 100}%`,
+    })
+    checks.push(checkDomeFocalOffcenter(result.placements, cake))
+  }
   return { pass: checks.every(c => c.pass), checks }
 }
 
@@ -154,6 +167,72 @@ function bandWidth(group: PlacedFlower[]): number {
     half = Math.max(half, Math.hypot(px, py, pz) + p.worldDiameter / 2)
   }
   return half * 2
+}
+
+// ── 雙群花圈專屬 ─────────────────────────────────────────────────────────────
+
+/** 兩花群焦點花的角度差 120°–210°。以各群 worldDiameter 最大的焦點花為代表；
+ *  兩方向間的角度差幾何上最大 180°，因此有效檢查為 ≥ 120°。 */
+function checkWreathAngle(placements: PlacedFlower[]): ConstraintCheck {
+  const primaryOf = (gid: number): PlacedFlower | undefined =>
+    placements
+      .filter(p => p.role === 'focal' && p.groupId === gid)
+      .sort((a, b) => b.worldDiameter - a.worldDiameter)[0]
+  const fA = primaryOf(0)
+  const fB = primaryOf(1)
+  if (!fA || !fB) {
+    return { id: 'wreath-angle-diff', pass: false, value: '缺少花群焦點花', limit: '120°–210°' }
+  }
+  const angA = Math.atan2(fA.position[2], fA.position[0])
+  const angB = Math.atan2(fB.position[2], fB.position[0])
+  let d = Math.abs(angA - angB) * (180 / Math.PI)
+  d = d % 360
+  if (d > 180) d = 360 - d
+  return {
+    id: 'wreath-angle-diff',
+    pass: d >= LIMITS.WREATH_ANGLE_MIN_DEG && d <= LIMITS.WREATH_ANGLE_MAX_DEG,
+    value: `${d.toFixed(1)}°`,
+    limit: `${LIMITS.WREATH_ANGLE_MIN_DEG}°–${LIMITS.WREATH_ANGLE_MAX_DEG}°`,
+  }
+}
+
+/** 頂面中央留白直徑 ≥ 30% 蛋糕直徑（中央區域內無花的投影圓） */
+function checkWreathCenterClear(placements: PlacedFlower[], cake: CakeSpec): ConstraintCheck {
+  const R = cake.radius
+  let clearR = R
+  for (const p of placements) {
+    if (p.surface !== 'top') continue
+    const rc = Math.hypot(p.position[0], p.position[2]) - p.worldDiameter / 2
+    clearR = Math.min(clearR, rc)
+  }
+  clearR = Math.max(clearR, 0)
+  // 留白直徑比 = 2·clearR / 2R = clearR / R
+  const frac = clearR / R
+  return {
+    id: 'wreath-center-clear',
+    pass: frac >= LIMITS.WREATH_CENTER_CLEAR_MIN,
+    value: `${(frac * 100).toFixed(1)}%（留白直徑/蛋糕直徑）`,
+    limit: `≥ ${LIMITS.WREATH_CENTER_CLEAR_MIN * 100}%`,
+  }
+}
+
+// ── 滿版圓頂專屬 ─────────────────────────────────────────────────────────────
+
+/** 焦點花最高點距圓心 ≥ 15% 半徑（不在正中心） */
+function checkDomeFocalOffcenter(placements: PlacedFlower[], cake: CakeSpec): ConstraintCheck {
+  const focals = placements.filter(p => p.role === 'focal')
+  if (focals.length === 0) {
+    return { id: 'dome-focal-offcenter', pass: false, value: '無焦點花', limit: `≥ ${LIMITS.DOME_FOCAL_OFFCENTER_MIN * 100}% 半徑` }
+  }
+  const highest = focals.reduce((a, b) => (a.position[1] >= b.position[1] ? a : b))
+  const dist = Math.hypot(highest.position[0], highest.position[2])
+  const frac = dist / cake.radius
+  return {
+    id: 'dome-focal-offcenter',
+    pass: frac >= LIMITS.DOME_FOCAL_OFFCENTER_MIN,
+    value: `${(frac * 100).toFixed(1)}% 半徑`,
+    limit: `≥ ${LIMITS.DOME_FOCAL_OFFCENTER_MIN * 100}% 半徑`,
+  }
 }
 
 // ── 幾何工具 ────────────────────────────────────────────────────────────────

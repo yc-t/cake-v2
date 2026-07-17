@@ -9,6 +9,10 @@
 import { initialState } from '../src/data/initialState'
 import { computeGradient, computePeonyGradient } from '../src/data/gradient'
 import { generateCrescent } from '../src/layout/crescent'
+import { generateWreath } from '../src/layout/wreath'
+import { generateDome } from '../src/layout/dome'
+import type { CakeSpec, LayoutResult } from '../src/layout/types'
+import type { ConstraintReport } from '../src/layout/constraints'
 import type { Flower, FlowerType } from '../src/types'
 
 // 模擬 Screen 1 的配色指定（薰衣草紫 / 花園藍 / 酒紅 / 暖白）
@@ -39,19 +43,29 @@ const cake = {
 
 const SEEDS = [1, 42, 1234, 20260717, 99999]
 
+type Generator = (f: Flower[], c: CakeSpec, s: number) => { result: LayoutResult; report: ConstraintReport }
+
+const LAYOUTS: { name: string; gen: Generator }[] = [
+  { name: 'crescent（新月弧）', gen: generateCrescent },
+  { name: 'wreath（雙群花圈）', gen: generateWreath },
+  { name: 'dome（滿版圓頂）', gen: generateDome },
+]
+
 let allPass = true
-console.log('=== crescent（新月弧）===')
-for (const seed of SEEDS) {
-  const { result, report } = generateCrescent(flowers, cake, seed)
-  const used = result.placements.length
-  console.log(
-    `seed ${seed}: ${report.pass ? 'PASS' : 'FAIL'}` +
-      `（attempts ${result.attempts}, flowers ${used}）`,
-  )
-  for (const c of report.checks) {
-    console.log(`  [${c.pass ? 'ok' : 'NG'}] ${c.id}: ${c.value}（limit ${c.limit}）`)
+for (const { name, gen } of LAYOUTS) {
+  console.log(`=== ${name} ===`)
+  for (const seed of SEEDS) {
+    const { result, report } = gen(flowers, cake, seed)
+    const used = result.placements.length
+    console.log(
+      `seed ${seed}: ${report.pass ? 'PASS' : 'FAIL'}` +
+        `（attempts ${result.attempts}, flowers ${used}）`,
+    )
+    for (const c of report.checks) {
+      console.log(`  [${c.pass ? 'ok' : 'NG'}] ${c.id}: ${c.value}（limit ${c.limit}）`)
+    }
+    if (!report.pass) allPass = false
   }
-  if (!report.pass) allPass = false
 }
 
 process.exit(allPass ? 0 : 1)

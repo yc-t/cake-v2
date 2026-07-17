@@ -62,6 +62,53 @@ export const CRESCENT = {
   FOCAL_LIFT_MAX: 0.25,
 } as const
 
+/** layout-direction §2B 雙群花圈構圖參數（全部「可調」） */
+export const WREATH = {
+  /** 焦點花距圓心 60–80% 半徑 */
+  FOCAL_R_MIN: 0.6,
+  FOCAL_R_MAX: 0.8,
+  /** 兩花群角度差（§2B：150–210°；驗收下限 120°） */
+  ANGLE_DIFF_MIN_DEG: 150,
+  ANGLE_DIFF_MAX_DEG: 210,
+  /** 花群內擴散半徑（×蛋糕半徑） */
+  SPREAD_MIN: 0.25,
+  SPREAD_MAX: 0.35,
+  /** 中央留白半徑（×蛋糕半徑；§2B 留白直徑 35–50% 蛋糕直徑 → 半徑同比例） */
+  HOLE_R_MIN: 0.38,
+  HOLE_R_MAX: 0.48,
+  /** 群內填充花尺寸（×焦點花直徑；§2B：遞減到 50–60%） */
+  FILL_SIZE_MIN: 0.5,
+  FILL_SIZE_MAX: 0.6,
+  /** 連接段花尺寸（§2B：40–50%） */
+  CONNECTOR_SIZE_MIN: 0.4,
+  CONNECTOR_SIZE_MAX: 0.5,
+  /** 連接段花數（§2B：2–4 朵，分佈在兩側弧上形成「環」的暗示） */
+  CONNECTOR_MIN: 3,
+  CONNECTOR_MAX: 4,
+  /** §7 焦點花抬升（世界單位） */
+  FOCAL_LIFT_MIN: 0.15,
+  FOCAL_LIFT_MAX: 0.25,
+} as const
+
+/** layout-direction §2C 滿版圓頂構圖參數（全部「可調」） */
+export const DOME = {
+  /** 焦點花群偏心距（×蛋糕半徑；§2C：約 1/4 半徑） */
+  FOCAL_OFFSET: 0.25,
+  /** 中間區尺寸（×焦點花直徑；§2C：55–70%） */
+  MID_SIZE_MIN: 0.55,
+  MID_SIZE_MAX: 0.7,
+  /** 邊緣區尺寸（§2C：35–45%） */
+  EDGE_SIZE_MIN: 0.35,
+  EDGE_SIZE_MAX: 0.45,
+  /** 邊緣花垂落側面深度（×蛋糕高度；§2C：10–30%） */
+  SIDE_DROP_MIN: 0.1,
+  SIDE_DROP_MAX: 0.3,
+  /** §7 / §2C dome 輪廓：焦點抬升與依 t 遞減的中段抬升 */
+  FOCAL_LIFT_MIN: 0.15,
+  FOCAL_LIFT_MAX: 0.25,
+  MID_LIFT_MAX: 0.12,
+} as const
+
 /** 硬約束檢查門檻（layout-engine-spec §9 可程式檢查項） */
 export const LIMITS = {
   SAME_TYPE_OVERLAP_MAX: 0.3,
