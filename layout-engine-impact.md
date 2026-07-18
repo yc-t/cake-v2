@@ -120,3 +120,11 @@
 ---
 
 以上。**等你確認 List D（特別是 1–7）後才開始寫程式碼。**
+
+---
+
+## 決議變更（2026-07-18）
+
+- **D-1 推翻**：庫存不再是 26 朵——擴充為 rose 8 / hydrangea 8 / peony 6 / fivepetal 12（`initialState.ts` 從「不需修改」改為修改對象，含 TRAY_POS / TRAY_SIZE 加深）。
+- **英雄花**：id 慣例 `peony-0`（不加 JSON 欄位，D-2 維持）。引擎選焦點花時優先挑它；crescent 主焦點 sizeRel 1.4–1.8、wreath 1.3–1.6；其餘 peony 0.9–1.3（宣告上限 1.5）。dome 本輪不用 hero 尺寸。
+- **覆蓋率 ×2**：crescent / wreath 以「實測頂面覆蓋翻倍」為目標調整 slot 朵數與尺寸常數；§9 驗收門檻不動。dome 本輪不動。

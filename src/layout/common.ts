@@ -1,6 +1,6 @@
 import type { Flower, FlowerType } from '../types'
 import type { CakeSpec, FlowerRole, LayoutResult, LayoutType, PlacedFlower } from './types'
-import { FLOWER_DIAMETER, MAX_GENERATION_ATTEMPTS, SPACING } from './constants'
+import { FLOWER_DIAMETER, HERO_FLOWER_ID, MAX_GENERATION_ATTEMPTS, SPACING } from './constants'
 import { placeOnSurface, sideFacePoint, topFacePoint } from './placement'
 import { checkLayout, type ConstraintReport } from './constraints'
 
@@ -207,8 +207,20 @@ export function selectFlowerIds(works: Work[], flowers: Flower[]): Map<Work, str
   for (const type of types) {
     const group = works.filter(w => w.slot.type === type).sort((a, b) => a.slot.t - b.slot.t)
     if (group.length === 0) continue
-    const pool = flowers.filter(f => f.type === type).sort((a, b) => luminance(a.color) - luminance(b.color))
-    const usable = group.slice(0, pool.length)
+    let pool = flowers.filter(f => f.type === type).sort((a, b) => luminance(a.color) - luminance(b.color))
+    let usable = group.slice(0, pool.length)
+
+    // 英雄花規則（2026-07-18）：worldDiameter 最大的 peony slot 優先選 HERO_FLOWER_ID
+    if (type === 'peony' && usable.length > 0) {
+      const hero = pool.find(f => f.id === HERO_FLOWER_ID)
+      if (hero) {
+        const heroWork = usable.reduce((a, b) => (b.worldD > a.worldD ? b : a), usable[0])
+        map.set(heroWork, hero.id)
+        pool = pool.filter(f => f.id !== hero.id)
+        usable = usable.filter(w => w !== heroWork)
+      }
+    }
+
     const picked = pickShadesForFlow(pool, usable.length)
     usable.forEach((w, i) => map.set(w, picked[i].id))
   }

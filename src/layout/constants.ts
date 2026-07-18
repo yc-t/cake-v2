@@ -12,8 +12,23 @@ export const FLOWER_DIAMETER: Record<FlowerType, number> = {
   fivepetal: 1.7,
 }
 
-/** 花盤庫存為硬上限（D1）：引擎只用 tray 現有的花，不生成額外實例 */
+/** 花盤庫存為硬上限（D1，2026-07-18 擴充為 rose 8 / hydrangea 8 / peony 6 / fivepetal 12）：
+ *  引擎只用 tray 現有的花，不生成額外實例 */
 export const MAX_GENERATION_ATTEMPTS = 24
+
+// ── 英雄花與 peony 尺寸（2026-07-18 決議） ──────────────────────────────────
+
+/** 英雄花 id 慣例：這朵 peony 在選焦點花時優先被挑中（不加 JSON 欄位，維持 D2） */
+export const HERO_FLOWER_ID = 'peony-0'
+/** 英雄花 scale 上限（sizeRel = scale，因焦點基準直徑即 peony 直徑） */
+export const PEONY_HERO_SCALE_MAX = 1.8
+/** 英雄花 sizeRel 下限（crescent / wreath 主焦點用；dome 本輪不用 hero 尺寸） */
+export const HERO_SIZE_MIN = 1.4
+/** 其餘 peony 的宣告上限（目前引擎實際給值範圍見 PEONY_OTHER_SIZE_*） */
+export const PEONY_SCALE_MAX = 1.5
+/** 其餘 peony 的實際尺寸範圍：彼此之間也有大小差異，不釘死在 1.0 */
+export const PEONY_OTHER_SIZE_MIN = 0.9
+export const PEONY_OTHER_SIZE_MAX = 1.3
 
 /**
  * layout-direction §3 空間規則（全部「可調」）。
@@ -47,16 +62,17 @@ export const CRESCENT = {
   /** 花流垂落側面的深度（×蛋糕高度；§2A 容許 0–50%） */
   SIDE_DROP_MIN: 0.25,
   SIDE_DROP_MAX: 0.5,
-  /** 中段 rose 尺寸（×焦點花直徑），沿花流由 START 遞減到 END（§2A：末端 40–50%） */
-  MID_SIZE_START: 0.58,
-  MID_SIZE_END: 0.45,
+  /** 中段 rose 尺寸（×焦點花直徑），沿花流由 START 遞減到 END（§2A：末端 40–50%）
+   *  2026-07-18 覆蓋率×2：0.58/0.45 → 0.66/0.53 */
+  MID_SIZE_START: 0.7,
+  MID_SIZE_END: 0.56,
   /** 收尾 fivepetal 尺寸（§2A：焦點花的 20–25%） */
   TAIL_SIZE_MAX: 0.25,
   TAIL_SIZE_MIN: 0.2,
   /** 收尾 hydrangea 小簇尺寸 */
   TAIL_HYD_SIZE: 0.28,
-  /** 墊底填充 hydrangea 尺寸 */
-  FILLER_SIZE: 0.5,
+  /** 墊底填充 hydrangea 尺寸（2026-07-18 覆蓋率×2：0.5 → 0.6） */
+  FILLER_SIZE: 0.65,
   /** §7 大花抬升（世界單位，大花頂端高於周圍 15–25% 的近似實作） */
   FOCAL_LIFT_MIN: 0.15,
   FOCAL_LIFT_MAX: 0.25,
@@ -73,18 +89,23 @@ export const WREATH = {
   /** 花群內擴散半徑（×蛋糕半徑） */
   SPREAD_MIN: 0.25,
   SPREAD_MAX: 0.35,
-  /** 中央留白半徑（×蛋糕半徑；§2B 留白直徑 35–50% 蛋糕直徑 → 半徑同比例） */
-  HOLE_R_MIN: 0.38,
-  HOLE_R_MAX: 0.48,
-  /** 群內填充花尺寸（×焦點花直徑；§2B：遞減到 50–60%） */
-  FILL_SIZE_MIN: 0.5,
-  FILL_SIZE_MAX: 0.6,
-  /** 連接段花尺寸（§2B：40–50%） */
-  CONNECTOR_SIZE_MIN: 0.4,
-  CONNECTOR_SIZE_MAX: 0.5,
+  /** 中央留白半徑（×蛋糕半徑；§2B 留白直徑 35–50% → 取下緣騰出環帶空間，
+   *  驗收下限 30% 仍留 6pt 餘裕） */
+  HOLE_R_MIN: 0.36,
+  HOLE_R_MAX: 0.44,
+  /** 群內填充花尺寸（×焦點花直徑；§2B：遞減到 50–60%）
+   *  2026-07-18 覆蓋率×2：0.5/0.6 → 0.62/0.72 */
+  FILL_SIZE_MIN: 0.66,
+  FILL_SIZE_MAX: 0.76,
+  /** 連接段花尺寸（§2B：40–50% 上緣；2026-07-18 覆蓋率×2 取上緣） */
+  CONNECTOR_SIZE_MIN: 0.48,
+  CONNECTOR_SIZE_MAX: 0.55,
   /** 連接段花數（§2B：2–4 朵，分佈在兩側弧上形成「環」的暗示） */
-  CONNECTOR_MIN: 3,
+  CONNECTOR_MIN: 4,
   CONNECTOR_MAX: 4,
+  /** wreath 英雄花 sizeRel 範圍（比 crescent 收斂，避免大幅懸出頂面邊緣） */
+  HERO_SIZE_MIN: 1.4,
+  HERO_SIZE_MAX: 1.7,
   /** §7 焦點花抬升（世界單位） */
   FOCAL_LIFT_MIN: 0.15,
   FOCAL_LIFT_MAX: 0.25,

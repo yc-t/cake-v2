@@ -1,6 +1,6 @@
 import type { Flower } from '../types'
 import type { CakeSpec, LayoutResult } from './types'
-import { CRESCENT, FLOWER_DIAMETER } from './constants'
+import { CRESCENT, FLOWER_DIAMETER, HERO_SIZE_MIN, PEONY_HERO_SCALE_MAX, PEONY_OTHER_SIZE_MAX, PEONY_OTHER_SIZE_MIN } from './constants'
 import {
   DEG, TAU, clamp, lerp, mulberry32,
   type GenSlot, type Work, makeWork, relax,
@@ -44,11 +44,12 @@ function generateOnce(flowers: Flower[], cake: CakeSpec, seed: number, attempts:
   // 2. slot 計畫（§2A 花型角色 + 大小遞減）
   const slots: Slot[] = []
   // 焦點：peony 2 + rose 1 = 3 朵（奇數，滿足跨佈局驗收；§2A：peony 1–2 + rose 1）
+  // 主焦點 = 英雄花尺寸（2026-07-18：sizeRel 1.4–1.8，選花時由 HERO_FLOWER_ID 優先補位）
   slots.push({ t: 0.02, lateral: 0.15, type: 'rose', role: 'focal', sizeRel: FLOWER_DIAMETER.rose / FLOWER_DIAMETER.peony, groupId: 0 })
-  slots.push({ t: 0.05, lateral: -0.6, type: 'peony', role: 'focal', sizeRel: 1.0, groupId: 0 })
-  slots.push({ t: 0.13, lateral: 0.55, type: 'peony', role: 'focal', sizeRel: 0.92, groupId: 0 })
-  // 中段：rose 2–3
-  const midCount = rng() < 0.5 ? 2 : 3
+  slots.push({ t: 0.05, lateral: -0.6, type: 'peony', role: 'focal', sizeRel: lerp(HERO_SIZE_MIN, PEONY_HERO_SCALE_MAX, rng()), groupId: 0 })
+  slots.push({ t: 0.13, lateral: 0.55, type: 'peony', role: 'focal', sizeRel: lerp(PEONY_OTHER_SIZE_MIN, PEONY_OTHER_SIZE_MAX, rng()), groupId: 0 })
+  // 中段：rose 4（2026-07-18 覆蓋率×2：原 2–3）
+  const midCount = 4
   for (let i = 0; i < midCount; i++) {
     const k = i / (midCount - 1)
     slots.push({
@@ -60,11 +61,11 @@ function generateOnce(flowers: Flower[], cake: CakeSpec, seed: number, attempts:
       groupId: 0,
     })
   }
-  // 墊底填充：hydrangea 1–2，塞在大花之間的縫隙（帶側）
-  const fillerCount = rng() < 0.6 ? 2 : 1
+  // 墊底填充：hydrangea 2–3，塞在大花之間的縫隙（帶側）（2026-07-18 覆蓋率×2：原 1–2）
+  const fillerCount = rng() < 0.6 ? 3 : 2
   for (let i = 0; i < fillerCount; i++) {
     slots.push({
-      t: i === 0 ? 0.18 : 0.36,
+      t: [0.16, 0.34, 0.46][i],
       lateral: (i % 2 === 0 ? -1 : 1) * lerp(0.9, 1.1, rng()),
       type: 'hydrangea',
       role: 'filler',
@@ -72,8 +73,8 @@ function generateOnce(flowers: Flower[], cake: CakeSpec, seed: number, attempts:
       groupId: 0,
     })
   }
-  // 收尾：fivepetal 2–3 + hydrangea 小簇 1
-  const tailCount = rng() < 0.5 ? 2 : 3
+  // 收尾：fivepetal 3–5 + hydrangea 小簇 1（2026-07-18 覆蓋率×2：原 2–3）
+  const tailCount = 3 + Math.floor(rng() * 3)
   for (let i = 0; i < tailCount; i++) {
     const k = i / (tailCount - 1)
     slots.push({

@@ -50,19 +50,21 @@ function generateOnce(flowers: Flower[], cake: CakeSpec, seed: number, attempts:
   // 2. 兩群的花型組成（§2B，兩群不對稱）
   //    焦點花共 3 朵（奇數）：A-peony、A-rose、B-rose
   const roseRel = FLOWER_DIAMETER.rose / FLOWER_DIAMETER.peony
+  // 2026-07-18 覆蓋率×2：主焦點改英雄花尺寸、兩群各加 1 rose 填充 + 1 fivepetal
   const groupA: GroupSpec = {
     groupId: 0,
     theta: thetaA,
     focalR: lerp(WREATH.FOCAL_R_MIN, WREATH.FOCAL_R_MAX, rng()) * R,
     spread: lerp(WREATH.SPREAD_MIN, WREATH.SPREAD_MAX, rng()) * R,
     slots: [
-      { type: 'peony', role: 'focal', sizeRel: 1.0 },
+      { type: 'peony', role: 'focal', sizeRel: lerp(WREATH.HERO_SIZE_MIN, WREATH.HERO_SIZE_MAX, rng()) },
       { type: 'rose', role: 'focal', sizeRel: roseRel },
+      { type: 'rose', role: 'filler', sizeRel: lerp(0.5, 0.6, rng()) },
       { type: 'hydrangea', role: 'filler', sizeRel: lerp(WREATH.FILL_SIZE_MIN, WREATH.FILL_SIZE_MAX, rng()) },
+      { type: 'hydrangea', role: 'filler', sizeRel: WREATH.FILL_SIZE_MIN },
       { type: 'fivepetal', role: 'filler', sizeRel: WREATH.FILL_SIZE_MIN },
-      ...(rng() < 0.5
-        ? [{ type: 'fivepetal', role: 'filler', sizeRel: WREATH.FILL_SIZE_MIN * 0.9 } as const]
-        : []),
+      { type: 'fivepetal', role: 'filler', sizeRel: WREATH.FILL_SIZE_MIN * 0.9 },
+      { type: 'fivepetal', role: 'filler', sizeRel: WREATH.FILL_SIZE_MIN * 0.8 },
     ],
   }
   const groupB: GroupSpec = {
@@ -72,10 +74,12 @@ function generateOnce(flowers: Flower[], cake: CakeSpec, seed: number, attempts:
     spread: lerp(WREATH.SPREAD_MIN, WREATH.SPREAD_MAX, rng()) * R,
     slots: [
       { type: 'rose', role: 'focal', sizeRel: roseRel },
-      ...(rng() < 0.5 ? [{ type: 'rose', role: 'mid', sizeRel: roseRel * 0.9 } as const] : []),
+      { type: 'rose', role: 'mid', sizeRel: roseRel * 0.9 },
       { type: 'hydrangea', role: 'mid', sizeRel: lerp(WREATH.FILL_SIZE_MIN, WREATH.FILL_SIZE_MAX, rng()) },
       { type: 'hydrangea', role: 'filler', sizeRel: WREATH.FILL_SIZE_MIN },
+      { type: 'hydrangea', role: 'filler', sizeRel: WREATH.FILL_SIZE_MIN * 0.9 },
       { type: 'fivepetal', role: 'filler', sizeRel: WREATH.FILL_SIZE_MIN * 0.95 },
+      { type: 'fivepetal', role: 'filler', sizeRel: WREATH.FILL_SIZE_MIN * 0.85 },
     ],
   }
 

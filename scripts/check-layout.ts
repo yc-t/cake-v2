@@ -12,7 +12,7 @@ import { generateCrescent } from '../src/layout/crescent'
 import { generateWreath } from '../src/layout/wreath'
 import { generateDome } from '../src/layout/dome'
 import type { CakeSpec, LayoutResult } from '../src/layout/types'
-import type { ConstraintReport } from '../src/layout/constraints'
+import { topCoverage, type ConstraintReport } from '../src/layout/constraints'
 import type { Flower, FlowerType } from '../src/types'
 
 // 模擬 Screen 1 的配色指定（薰衣草紫 / 花園藍 / 酒紅 / 暖白）
@@ -57,9 +57,10 @@ for (const { name, gen } of LAYOUTS) {
   for (const seed of SEEDS) {
     const { result, report } = gen(flowers, cake, seed)
     const used = result.placements.length
+    const cov = topCoverage(result.placements, cake).coverage
     console.log(
       `seed ${seed}: ${report.pass ? 'PASS' : 'FAIL'}` +
-        `（attempts ${result.attempts}, flowers ${used}）`,
+        `（attempts ${result.attempts}, flowers ${used}, top coverage ${(cov * 100).toFixed(1)}%）`,
     )
     for (const c of report.checks) {
       console.log(`  [${c.pass ? 'ok' : 'NG'}] ${c.id}: ${c.value}（limit ${c.limit}）`)

@@ -5,10 +5,10 @@ import { DEFAULT_FLOWER_RGB } from './palette'
 // Tray height = 0.35 → tray center y = -2.3 + 0.175 = -2.125 → tray top = -1.95
 const TRAY_TOP = -1.95
 
-// Roses: 3 cols × 2 rows
+// Roses: 4 cols × 2 rows
 const ROSE_SLOTS: [number, number, number][] = [
-  [8, TRAY_TOP, -3],   [10.5, TRAY_TOP, -3],   [13, TRAY_TOP, -3],
-  [8, TRAY_TOP, -0.5], [10.5, TRAY_TOP, -0.5], [13, TRAY_TOP, -0.5],
+  [8, TRAY_TOP, -3],   [10, TRAY_TOP, -3],   [12, TRAY_TOP, -3],   [14, TRAY_TOP, -3],
+  [8, TRAY_TOP, -0.5], [10, TRAY_TOP, -0.5], [12, TRAY_TOP, -0.5], [14, TRAY_TOP, -0.5],
 ]
 
 // Hydrangeas: 4 cols × 2 rows
@@ -17,15 +17,16 @@ const HYDRANGEA_SLOTS: [number, number, number][] = [
   [8, TRAY_TOP, 4.3],  [9.8, TRAY_TOP, 4.3],  [11.6, TRAY_TOP, 4.3],  [13.4, TRAY_TOP, 4.3],
 ]
 
-// Peony: 4 cols × 1 row
+// Peony: 3 cols × 2 rows（peony-0 = 佈局引擎的英雄花，見 layout/constants.ts HERO_FLOWER_ID）
 const PEONY_SLOTS: [number, number, number][] = [
-  [8, TRAY_TOP, 6.5], [10, TRAY_TOP, 6.5], [12, TRAY_TOP, 6.5], [14, TRAY_TOP, 6.5],
+  [8, TRAY_TOP, 6.3], [11, TRAY_TOP, 6.3], [14, TRAY_TOP, 6.3],
+  [8, TRAY_TOP, 8.9], [11, TRAY_TOP, 8.9], [14, TRAY_TOP, 8.9],
 ]
 
-// FivePetal: 4 cols × 2 rows
+// FivePetal: 6 cols × 2 rows
 const FIVEPETAL_SLOTS: [number, number, number][] = [
-  [8, TRAY_TOP, 8.3], [10, TRAY_TOP, 8.3], [12, TRAY_TOP, 8.3], [14, TRAY_TOP, 8.3],
-  [8, TRAY_TOP, 9.4], [10, TRAY_TOP, 9.4], [12, TRAY_TOP, 9.4], [14, TRAY_TOP, 9.4],
+  [7.5, TRAY_TOP, 10.7], [9, TRAY_TOP, 10.7], [10.5, TRAY_TOP, 10.7], [12, TRAY_TOP, 10.7], [13.5, TRAY_TOP, 10.7], [15, TRAY_TOP, 10.7],
+  [7.5, TRAY_TOP, 11.8], [9, TRAY_TOP, 11.8], [10.5, TRAY_TOP, 11.8], [12, TRAY_TOP, 11.8], [13.5, TRAY_TOP, 11.8], [15, TRAY_TOP, 11.8],
 ]
 
 function makeFlower(
@@ -76,6 +77,6 @@ export const initialState: AppState = {
   currentScreen: 'screen1',
 }
 
-// Tray geometry: x 6.5–15.5, z -4.5–10.0
-export const TRAY_POS: [number, number, number] = [11, -2.125, 2.75]
-export const TRAY_SIZE: [number, number, number] = [9, 0.35, 14.5]
+// Tray geometry: x 6.5–15.5, z -4.5–13.0（2026-07-18 庫存擴充：加深容納 peony 第二排與 fivepetal 12 朵）
+export const TRAY_POS: [number, number, number] = [11, -2.125, 4.25]
+export const TRAY_SIZE: [number, number, number] = [9, 0.35, 17.5]
