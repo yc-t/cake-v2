@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script type="importmap">
+{
+  "imports": {
+    "three": "/node_modules/three/build/three.module.js",
+    "three/addons/": "/node_modules/three/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body style="margin:0;background:#000">
+<script type="module">
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+
+const DEFAULT_R = 0.957, DEFAULT_G = 0.937, DEFAULT_B = 0.914
+
+// Replicate flowerNormalize.ts
+function normalizeFlower(root, targetDiameter, stemMode = 'bottom') {
+  root.updateMatrixWorld(true)
+  const box1 = new THREE.Box3().setFromObject(root)
+  const size = new THREE.Vector3()
+  box1.getSize(size)
+  const naturalDiameter = Math.max(size.x, size.z) || 1
+  root.scale.setScalar(targetDiameter / naturalDiameter)
+  root.updateMatrixWorld(true)
+  const box2 = new THREE.Box3().setFromObject(root)
+  let contactY = box2.min.y
+  if (stemMode === 'density') {
+    const yVals = []
+    const tmp = new THREE.Vector3()
+    root.traverse(child => {
+      if (!(child instanceof THREE.Mesh)) return
+      const pos = child.geometry.getAttribute('position')
+      if (!pos) return
+      for (let i = 0; i < pos.count; i++) {
+        tmp.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(child.matrixWorld)
+        yVals.push(tmp.y)
+      }
+    })
+    if (yVals.length > 0) {
+      const minY = box2.min.y
+      const height = box2.max.y - minY
+      const NUM_BINS = 20, binSize = height / NUM_BINS
+      const hist = new Array(NUM_BINS).fill(0)
+      for (const y of yVals) hist[Math.min(Math.floor((y - minY) / binSize), NUM_BINS - 1)]++
+      const peak = Math.max(...hist), threshold = peak * 0.30
+      for (let b = 0; b < NUM_BINS; b++) {
+        if (hist[b] >= threshold) { contactY = minY + b * binSize; break }
+      }
+    }
+  }
+  root.position.y = -contactY
+}
+
+// Replicate FivePetal.tsx buildGeometry()
+function buildFivePetalGeometry() {
+  const NUM_PETALS=5, INNER_R=0.05, OUTER_R=0.60
+  const MAX_HALF_W=0.22, BEND=0.10, U_SEGS=16, V_SEGS=12
+  const CTR_R=0.09, CTR_H=0.07, CTR_LATS=5, CTR_LONS=16
+  const TARGET_DIAMETER=1.7, TWO_PI=Math.PI*2
+  const pos=[], nrm=[], idx=[]
+  let vc=0
+  const vtx=(x,y,z)=>{ pos.push(x,y,z); nrm.push(0,0,0); return vc++ }
+  const tri=(a,b,c)=>idx.push(a,b,c)
+  for (let p=0;p<NUM_PETALS;p++) {
+    const angle=p/NUM_PETALS*TWO_PI, ca=Math.cos(angle), sa=Math.sin(angle), g=[]
+    for (let ui=0;ui<=U_SEGS;ui++) {
+      const u=ui/U_SEGS, r=INNER_R+u*(OUTER_R-INNER_R)
+      const hw=Math.max(0.008,MAX_HALF_W*Math.sin(Math.PI*u)), ym=BEND*Math.sin(Math.PI*u), row=[]
+      for (let vi=0;vi<=V_SEGS;vi++) {
+        const vn=vi/V_SEGS*2-1, lx=r, lz=vn*hw, ly=ym*(1-vn*vn*0.5)
+        row.push(vtx(lx*ca-lz*sa,ly,lx*sa+lz*ca))
+      }
+      g.push(row)
+    }
+    for (let ui=0;ui<U_SEGS;ui++) for (let vi=0;vi<V_SEGS;vi++) {
+      const [a,b,c,d]=[g[ui][vi],g[ui][vi+1],g[ui+1][vi],g[ui+1][vi+1]]
+      tri(a,b,d); tri(a,d,c)
+    }
+  }
+  const dg=[]
+  for (let lat=0;lat<=CTR_LATS;lat++) {
+    const phi=lat/CTR_LATS*Math.PI/2, y=CTR_H*Math.cos(phi), r=CTR_R*Math.sin(phi), row=[]
+    for (let lon=0;lon<=CTR_LONS;lon++) { const th=lon/CTR_LONS*TWO_PI; row.push(vtx(r*Math.cos(th),y,r*Math.sin(th))) }
+    dg.push(row)
+  }
+  for (let lat=0;lat<CTR_LATS;lat++) for (let lon=0;lon<CTR_LONS;lon++) {
+    const [a,b,c,d]=[dg[lat][lon],dg[lat][lon+1],dg[lat+1][lon],dg[lat+1][lon+1]]
+    tri(a,b,d); tri(a,d,c)
+  }
+  const bot=vtx(0,0,0), eq=dg[CTR_LATS]
+  for (let lon=0;lon<CTR_LONS;lon++) tri(bot,eq[lon+1],eq[lon])
+  for (let i=0;i<idx.length;i+=3) {
+    const [ai,bi,ci]=[idx[i],idx[i+1],idx[i+2]]
+    const ax=pos[ai*3],ay=pos[ai*3+1],az=pos[ai*3+2]
+    const bx=pos[bi*3],by=pos[bi*3+1],bz=pos[bi*3+2]
+    const cx=pos[ci*3],cy=pos[ci*3+1],cz=pos[ci*3+2]
+    const ex=bx-ax,ey=by-ay,ez=bz-az, fx=cx-ax,fy=cy-ay,fz=cz-az
+    const nx=ey*fz-ez*fy, ny=ez*fx-ex*fz, nz=ex*fy-ey*fx
+    for (const vi of [ai,bi,ci]) { nrm[vi*3]+=nx; nrm[vi*3+1]+=ny; nrm[vi*3+2]+=nz }
+  }
+  for (let i=0;i<vc;i++) {
+    const nx=nrm[i*3],ny=nrm[i*3+1],nz=nrm[i*3+2], len=Math.sqrt(nx*nx+ny*ny+nz*nz)||1
+    nrm[i*3]=nx/len; nrm[i*3+1]=ny/len; nrm[i*3+2]=nz/len
+  }
+  const geo=new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos),3))
+  geo.setAttribute('normal',   new THREE.BufferAttribute(new Float32Array(nrm),3))
+  geo.setIndex(new THREE.BufferAttribute(new Uint16Array(idx),1))
+  geo.computeBoundingBox()
+  const bb=geo.boundingBox, sz=new THREE.Vector3(); bb.getSize(sz)
+  const sc=TARGET_DIAMETER/Math.max(sz.x,sz.z)
+  geo.scale(sc,sc,sc)
+  geo.computeBoundingBox()
+  const bb2=geo.boundingBox
+  geo.translate(-((bb2.min.x+bb2.max.x)/2), -bb2.min.y, -((bb2.min.z+bb2.max.z)/2))
+  return geo
+}
+
+function addLights(scene) {
+  scene.add(new THREE.AmbientLight(0xffffff, 1.8))
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xe8e3dc, 1.2))
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8)
+  dir.position.set(2, 5, 3)
+  scene.add(dir)
+}
+
+async function renderFlower(config) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 200; canvas.height = 200
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true })
+  renderer.setSize(200, 200)
+  renderer.setPixelRatio(1)
+  renderer.toneMapping = THREE.NoToneMapping
+
+  const scene = new THREE.Scene()
+  addLights(scene)
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
+  camera.position.set(...config.camera)
+  camera.lookAt(0, 0, 0)
+
+  if (config.glb) {
+    const loader = new GLTFLoader()
+    const gltf = await new Promise((res, rej) => loader.load(config.glb, res, undefined, rej))
+    const root = gltf.scene.clone(true)
+    if (config.clearSketchfab) {
+      root.traverse(child => {
+        if (child.name === 'Sketchfab_model' || child.name === 'GLTF_SceneRootNode') {
+          child.rotation.set(0, 0, 0); child.quaternion.identity()
+        }
+      })
+    }
+    root.traverse(child => {
+      if (child instanceof THREE.Mesh) {
+        child.material = new THREE.MeshStandardMaterial({ metalness: 0, roughness: 0.7 })
+        child.material.color.setRGB(DEFAULT_R, DEFAULT_G, DEFAULT_B)
+      }
+    })
+    normalizeFlower(root, config.diameter, config.stemMode ?? 'bottom')
+    scene.add(root)
+  } else {
+    // FivePetal — procedural geometry
+    const geo = buildFivePetalGeometry()
+    const mat = new THREE.MeshStandardMaterial({ metalness: 0, roughness: 0.7, side: THREE.DoubleSide })
+    mat.color.setRGB(DEFAULT_R, DEFAULT_G, DEFAULT_B)
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.scale.setScalar(0.5)
+    scene.add(mesh)
+  }
+
+  renderer.render(scene, camera)
+  const dataUrl = canvas.toDataURL('image/png')
+  renderer.dispose()
+  return dataUrl
+}
+
+const CONFIGS = [
+  { type: 'rose',      camera: [0,3,3], glb: '/public/models/rose.glb',      diameter: 1.6 },
+  { type: 'hydrangea', camera: [0,4,3], glb: '/public/models/hydrangea.glb', diameter: 2.0 },
+  { type: 'peony',     camera: [0,4,3], glb: '/public/models/peony.glb',     diameter: 2.64, stemMode: 'density', clearSketchfab: true },
+  { type: 'fivepetal', camera: [0,3,2], glb: null },
+]
+
+;(async () => {
+  const results = []
+  for (const cfg of CONFIGS) {
+    console.log(`Rendering ${cfg.type}...`)
+    const dataUrl = await renderFlower(cfg)
+    results.push({ type: cfg.type, dataUrl })
+  }
+  window.__thumbnails = results
+  console.log('All done.')
+})()
+</script>
+</body>
+</html>

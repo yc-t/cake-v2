@@ -16,8 +16,10 @@ Vite + React + TypeScript + React Three Fiber + Drei + Three.js
 - 不要自己發明互動邏輯或設計決策。如果 spec 沒寫，問我。
 - 每個階段完成後停下來等我驗收，不要自動進入下一階段。
 
-## 本輪開發規則（配色系統替換）
-- 實作規格：color-system-spec.md（Section 2 定義權限層級）
-- 只做 color-system-spec.md Section 4 In scope 列出的內容
-- 不碰花的模型載入、吸附邏輯、OrbitControls、截圖功能
-- 不做花大小調整、花方向旋轉、返回 Screen 1 保留排列
+## 本輪開發規則
+- 實作規格：layout-engine-spec.md
+- 只做 layout-engine-spec.md Section 4 In scope 列出的內容
+- 不碰 Must avoid 列出的範圍（花模型載入、配色系統、Screen 1）
+- 如果在開發過程中發現範圍外的問題或機會，寫進 backlog.md，標記「設計提議」或「bug」，然後繼續當前任務
+- 不確定某個細節屬於哪一層（現在做 vs 之後做），問我，不要自己決定
+- 每個階段完成後，先自己跑 npx tsc -b --force 和 npx tsx scripts/check-layout.ts，確認編譯通過且佈局檢查全部 PASS，才回報結果給我。如果有 FAIL，自己嘗試修復，修復後重跑檢查。連續修三次還是 FAIL 的項目，回報給我並說明嘗試了什麼。
